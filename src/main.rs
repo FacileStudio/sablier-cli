@@ -14,6 +14,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Start a new timer (interactive project/task picker)")]
+    Start {
+        #[arg(long, help = "Project ID (skip interactive picker)")]
+        project_id: Option<i64>,
+        #[arg(long, help = "Task ID (requires --project-id)")]
+        task_id: Option<i64>,
+    },
     #[command(about = "Show the currently running timer")]
     Status,
     #[command(about = "Stop the running timer")]
@@ -38,6 +45,7 @@ async fn main() -> Result<()> {
 
 async fn run_command(cmd: Command) -> Result<()> {
     match cmd {
+        Command::Start { project_id, task_id } => cmd_start(project_id, task_id).await,
         Command::Status => cmd_status().await,
         Command::Stop => cmd_stop().await,
         Command::Pause => cmd_pause().await,
@@ -58,6 +66,63 @@ fn load_authed_config() -> Result<config::Config> {
         );
     }
     Ok(cfg)
+}
+
+async fn cmd_start(project_id: Option<i64>, task_id: Option<i64>) -> Result<()> {
+    let cfg = load_authed_config()?;
+    let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
+
+    let (pid, tid) = match (project_id, task_id) {
+        (Some(p), Some(t)) => (p, t),
+        (Some(p), None) => {
+            let tasks = client.tasks(p).await?;
+            if tasks.is_empty() {
+                bail!("No tasks found for project {}", p);
+            }
+            let names: Vec<String> = tasks.iter().map(|t| t.name.clone()).collect();
+            let selection = dialoguer::FuzzySelect::new()
+                .with_prompt("Select task")
+                .items(&names)
+                .default(0)
+                .interact()?;
+            (p, tasks[selection].id)
+        }
+        _ => {
+            let projects = client.projects().await?;
+            if projects.is_empty() {
+                bail!("No projects found");
+            }
+            let proj_names: Vec<String> = projects.iter().map(|p| p.name.clone()).collect();
+            let proj_sel = dialoguer::FuzzySelect::new()
+                .with_prompt("Select project")
+                .items(&proj_names)
+                .default(0)
+                .interact()?;
+            let project = &projects[proj_sel];
+
+            let tasks = client.tasks(project.id).await?;
+            if tasks.is_empty() {
+                bail!("No tasks found for project \"{}\"", project.name);
+            }
+            let task_names: Vec<String> = tasks.iter().map(|t| t.name.clone()).collect();
+            let task_sel = dialoguer::FuzzySelect::new()
+                .with_prompt("Select task")
+                .items(&task_names)
+                .default(0)
+                .interact()?;
+            (project.id, tasks[task_sel].id)
+        }
+    };
+
+    let entry = client.start(pid, tid).await?;
+    let projects = client.projects().await.unwrap_or_default();
+    let project_name = projects
+        .iter()
+        .find(|p| p.id == entry.project_id)
+        .map(|p| p.name.as_str())
+        .unwrap_or("?");
+    println!("Timer started — {}", project_name);
+    Ok(())
 }
 
 async fn cmd_status() -> Result<()> {
