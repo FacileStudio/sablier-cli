@@ -113,7 +113,7 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
     let pixel_size = pick_pixel_size(area.height, area.width);
 
     let timer_height = pixel_size.map_or(1, big_text_height);
-    let info_lines: u16 = 4;
+    let info_lines: u16 = 6;
     let total_content = timer_height + info_lines;
     let v_pad = area.height.saturating_sub(total_content) / 2;
 
@@ -122,6 +122,8 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
         .constraints([
             Constraint::Length(v_pad),
             Constraint::Length(timer_height),
+            Constraint::Length(1),
+            Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Length(1),
@@ -199,6 +201,30 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
         ]))
         .alignment(Alignment::Center),
         chunks[5],
+    );
+
+    let hints = if is_paused {
+        vec![
+            Span::styled("s", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(" stop  ", Style::default().fg(theme::SECONDARY)),
+            Span::styled("r", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(" resume  ", Style::default().fg(theme::SECONDARY)),
+            Span::styled("n", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(" new", Style::default().fg(theme::SECONDARY)),
+        ]
+    } else {
+        vec![
+            Span::styled("s", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(" stop  ", Style::default().fg(theme::SECONDARY)),
+            Span::styled("p", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(" pause  ", Style::default().fg(theme::SECONDARY)),
+            Span::styled("n", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(" new", Style::default().fg(theme::SECONDARY)),
+        ]
+    };
+    frame.render_widget(
+        Paragraph::new(Line::from(hints)).alignment(Alignment::Center),
+        chunks[7],
     );
 }
 
