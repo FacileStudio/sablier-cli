@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::api::{Project, Task, TimeEntry, User};
 use crate::config::Config;
 
@@ -46,6 +48,8 @@ pub struct App {
     pub projects: Vec<Project>,
     pub project_selected: usize,
 
+    pub task_names: HashMap<i64, String>,
+
     pub entries: Vec<TimeEntry>,
     pub entry_selected: usize,
 
@@ -80,6 +84,7 @@ impl App {
             running_entry: None,
             projects: Vec::new(),
             project_selected: 0,
+            task_names: HashMap::new(),
             entries: Vec::new(),
             entry_selected: 0,
             popup: None,
@@ -146,7 +151,16 @@ impl App {
             .unwrap_or_else(|| format!("#{}", project_id))
     }
 
-    pub fn task_name_from_entries(&self, _task_id: i64) -> String {
-        String::from("—")
+    pub fn task_name(&self, task_id: i64) -> String {
+        self.task_names
+            .get(&task_id)
+            .cloned()
+            .unwrap_or_else(|| format!("#{}", task_id))
+    }
+
+    pub fn cache_tasks(&mut self, tasks: &[Task]) {
+        for t in tasks {
+            self.task_names.insert(t.id, t.name.clone());
+        }
     }
 }

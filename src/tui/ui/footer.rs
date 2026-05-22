@@ -29,16 +29,20 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         return;
     }
 
-    let hints = match app.screen {
-        Screen::Timer => {
-            if app.running_entry.is_some() {
-                " s stop · p pause · r resume · n new · q quit"
-            } else {
-                " n new timer · r refresh · q quit"
-            }
+    let hints = if app.popup.is_some() {
+        " j/k select · Enter confirm · Esc back"
+    } else {
+        match app.screen {
+            Screen::Timer => match &app.running_entry {
+                Some(entry) if entry.is_paused() => {
+                    " s stop · r resume · n new · q quit"
+                }
+                Some(_) => " s stop · p pause · n new · q quit",
+                None => " n new timer · r refresh · q quit",
+            },
+            Screen::Projects => " j/k navigate · Tab sidebar · q quit",
+            Screen::Entries => " j/k navigate · r refresh · Tab sidebar · q quit",
         }
-        Screen::Projects => " j/k navigate · q quit",
-        Screen::Entries => " j/k navigate · r refresh · q quit",
     };
 
     let line = Line::from(Span::styled(hints, theme::dim()));

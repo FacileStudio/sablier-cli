@@ -2,7 +2,7 @@ mod api;
 mod config;
 mod tui;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -49,6 +49,14 @@ async fn run_command(cmd: Command) -> Result<()> {
     }
 }
 
+fn load_authed_config() -> Result<config::Config> {
+    let cfg = config::Config::load()?;
+    if cfg.token.is_empty() {
+        bail!("Not logged in. Run `sablier login` first.");
+    }
+    Ok(cfg)
+}
+
 async fn cmd_login() -> Result<()> {
     let mut cfg = config::Config::load_or_default();
 
@@ -56,7 +64,11 @@ async fn cmd_login() -> Result<()> {
         eprint!("Server URL: ");
         let mut url = String::new();
         std::io::stdin().read_line(&mut url)?;
-        cfg.server_url = url.trim().to_string();
+        let url = url.trim().to_string();
+        if !url.starts_with("http://") && !url.starts_with("https://") {
+            bail!("URL must start with http:// or https://");
+        }
+        cfg.server_url = url;
     }
 
     eprint!("Email: ");
@@ -85,14 +97,20 @@ async fn cmd_login() -> Result<()> {
 }
 
 async fn cmd_status() -> Result<()> {
-    let cfg = config::Config::load()?;
+    let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
 
     match client.running_entry().await? {
         Some(entry) => {
             let elapsed = entry.elapsed_display();
             let status = entry.status_label();
-            println!("{} {}", elapsed, status);
+            let projects = client.projects().await.unwrap_or_default();
+            let project_name = projects
+                .iter()
+                .find(|p| p.id == entry.project_id)
+                .map(|p| p.name.as_str())
+                .unwrap_or("?");
+            println!("{} {} — {}", elapsed, status, project_name);
         }
         None => println!("No timer running."),
     }
@@ -100,7 +118,7 @@ async fn cmd_status() -> Result<()> {
 }
 
 async fn cmd_stop() -> Result<()> {
-    let cfg = config::Config::load()?;
+    let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     let entry = client.stop().await?;
     println!("Stopped. Total: {}", entry.elapsed_display());
@@ -108,7 +126,7 @@ async fn cmd_stop() -> Result<()> {
 }
 
 async fn cmd_pause() -> Result<()> {
-    let cfg = config::Config::load()?;
+    let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     client.pause().await?;
     println!("Timer paused.");
@@ -116,7 +134,7 @@ async fn cmd_pause() -> Result<()> {
 }
 
 async fn cmd_resume() -> Result<()> {
-    let cfg = config::Config::load()?;
+    let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     client.resume().await?;
     println!("Timer resumed.");
@@ -124,7 +142,7 @@ async fn cmd_resume() -> Result<()> {
 }
 
 async fn cmd_projects() -> Result<()> {
-    let cfg = config::Config::load()?;
+    let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     let projects = client.projects().await?;
 

@@ -26,7 +26,10 @@ fn render_loading(frame: &mut Frame, area: Rect) {
     let center = centered_rect(50, 40, area);
     let text = vec![
         Line::from(""),
-        Line::from(Span::styled("Loading...", theme::dim())),
+        Line::from(Span::styled(
+            "Loading...",
+            Style::default().fg(theme::PRIMARY),
+        )),
     ];
     let paragraph = Paragraph::new(text).alignment(Alignment::Center);
     frame.render_widget(paragraph, center);
@@ -43,10 +46,7 @@ fn render_idle(frame: &mut Frame, area: Rect) {
     let text = vec![
         Line::from(""),
         Line::from(""),
-        Line::from(Span::styled(
-            "No timer running",
-            theme::dim(),
-        )),
+        Line::from(Span::styled("No timer running", theme::dim())),
         Line::from(""),
         Line::from(Span::styled(
             "Press  n  to start a timer",
@@ -96,7 +96,11 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
         chunks[1],
     );
 
-    let status_indicator = if entry.is_paused() { "⏸ Paused" } else { "● Running" };
+    let status_indicator = if entry.is_paused() {
+        "⏸ Paused"
+    } else {
+        "● Running"
+    };
     let status_style = if entry.is_paused() {
         theme::status_paused()
     } else {
@@ -109,20 +113,20 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
     );
 
     let project_name = app.project_name(entry.project_id);
+    let task_name = app.task_name(entry.task_id);
     frame.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled("  Project  ", theme::dim()),
+            Span::styled("Project ", theme::dim()),
             Span::styled(project_name, theme::bold()),
         ]))
         .alignment(Alignment::Center),
         chunks[5],
     );
 
-    let task_label = app.task_name_from_entries(entry.task_id);
     frame.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled("  Task     ", theme::dim()),
-            Span::styled(task_label, theme::bold()),
+            Span::styled("Task    ", theme::dim()),
+            Span::styled(task_name, theme::bold()),
         ]))
         .alignment(Alignment::Center),
         chunks[6],

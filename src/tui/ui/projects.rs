@@ -1,5 +1,5 @@
 use ratatui::{
-    layout::{Constraint, Rect},
+    layout::Rect,
     style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState, Padding, Paragraph},
@@ -59,6 +59,4 @@ pub fn render(frame: &mut Frame, app: &mut App, area: Rect) {
     let list = List::new(items);
     let mut state = ListState::default().with_selected(Some(app.project_selected));
     frame.render_stateful_widget(list, inner, &mut state);
-
-    let _ = Constraint::Min(0);
 }

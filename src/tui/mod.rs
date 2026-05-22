@@ -201,6 +201,7 @@ async fn run_loop(
                 let handle = tasks_load.take().unwrap();
                 match handle.await? {
                     Ok((project, tasks)) => {
+                        app.cache_tasks(&tasks);
                         if !app.popup_cancelled {
                             app.popup = Some(Popup::PickTask {
                                 project,

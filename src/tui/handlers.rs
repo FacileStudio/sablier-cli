@@ -76,7 +76,7 @@ fn handle_sidebar(app: &mut App, key: KeyEvent) {
 
 fn handle_timer(app: &mut App, key: KeyEvent) {
     match key.code {
-        KeyCode::Char('n') | KeyCode::Enter => {
+        KeyCode::Char('n') => {
             if app.projects.is_empty() {
                 app.set_error("No projects loaded yet");
                 return;
@@ -167,8 +167,15 @@ fn handle_entries(app: &mut App, key: KeyEvent) {
 fn handle_popup(app: &mut App, key: KeyEvent) {
     match key.code {
         KeyCode::Esc => {
-            app.popup = None;
-            app.popup_cancelled = true;
+            if matches!(app.popup, Some(Popup::PickTask { .. })) {
+                app.popup = Some(Popup::PickProject {
+                    projects: app.projects.clone(),
+                    selected: 0,
+                });
+            } else {
+                app.popup = None;
+                app.popup_cancelled = true;
+            }
         }
         KeyCode::Char('j') | KeyCode::Down => popup_move_down(app),
         KeyCode::Char('k') | KeyCode::Up => popup_move_up(app),
