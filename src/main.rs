@@ -31,6 +31,8 @@ enum Command {
     Resume,
     #[command(about = "List projects")]
     Projects,
+    #[command(about = "Upgrade sablier to the latest version")]
+    Upgrade,
 }
 
 #[tokio::main]
@@ -51,6 +53,7 @@ async fn run_command(cmd: Command) -> Result<()> {
         Command::Pause => cmd_pause().await,
         Command::Resume => cmd_resume().await,
         Command::Projects => cmd_projects().await,
+        Command::Upgrade => cmd_upgrade().await,
     }
 }
 
@@ -167,6 +170,24 @@ async fn cmd_resume() -> Result<()> {
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     client.resume().await?;
     println!("Timer resumed.");
+    Ok(())
+}
+
+async fn cmd_upgrade() -> Result<()> {
+    println!("Upgrading sablier...");
+    let status = std::process::Command::new("cargo")
+        .args([
+            "install",
+            "--git",
+            "https://github.com/FacileStudio/sablier-cli.git",
+            "--force",
+            "--quiet",
+        ])
+        .status()?;
+    if !status.success() {
+        bail!("Upgrade failed");
+    }
+    println!("Upgraded to latest version.");
     Ok(())
 }
 

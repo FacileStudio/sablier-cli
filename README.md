@@ -7,7 +7,19 @@ Full TUI with vim-style navigation, big timer display, and project/task manageme
 ## Install
 
 ```sh
+curl -fsSL https://raw.githubusercontent.com/FacileStudio/sablier-cli/main/install.sh | bash
+```
+
+Or from a local clone:
+
+```sh
 cargo install --path .
+```
+
+### Update
+
+```sh
+sablier upgrade
 ```
 
 ## Setup
@@ -51,6 +63,7 @@ sablier stop
 sablier pause
 sablier resume
 sablier projects
+sablier upgrade                # update to latest version
 ```
 
 ## License
