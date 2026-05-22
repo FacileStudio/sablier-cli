@@ -2,70 +2,40 @@
 
 Terminal client for [Sablier](https://github.com/FacileStudio/sablier) time tracking.
 
-Full TUI with vim-style navigation, big timer display, and project/task management — or use it as a quick CLI.
-
 ## Install
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/FacileStudio/sablier-cli/main/install.sh | bash
 ```
 
-Or from a local clone:
-
-```sh
-cargo install --path .
-```
-
-### Update
-
-```sh
-sablier upgrade
-```
-
 ## Setup
 
-Create `~/.sablier.yml`:
+Add your API token to `~/.sablier.yml`:
 
 ```yaml
 server_url: https://your-instance.example.com
 token: your-api-token
 ```
 
-Generate your token at **Profile > API Token** in the Sablier dashboard.
-
 ## Usage
 
-### TUI
-
 ```sh
-sablier
+sablier            # launch TUI
+sablier start      # start timer (interactive picker)
+sablier status     # show running timer
+sablier stop       # stop timer
+sablier pause      # pause timer
+sablier resume     # resume timer
+sablier upgrade    # update to latest version
 ```
+
+### Keybindings
 
 | Key | Action |
 |-----|--------|
 | `n` | New timer |
-| `s` | Stop |
-| `p` | Pause |
-| `r` | Resume / Refresh |
-| `j/k` | Navigate lists |
-| `g/G` | Jump to top/bottom |
-| `Tab` | Switch screens |
-| `1/2/3` | Jump to Timer/Projects/Entries |
+| `s/p/r` | Stop / Pause / Resume |
+| `j/k` | Navigate |
+| `g/G` | Top / Bottom |
+| `Tab` | Switch screen |
 | `q` | Quit |
-
-### CLI
-
-```sh
-sablier start                  # interactive project/task picker
-sablier start --project-id 1 --task-id 2
-sablier status
-sablier stop
-sablier pause
-sablier resume
-sablier projects
-sablier upgrade                # update to latest version
-```
-
-## License
-
-MIT
