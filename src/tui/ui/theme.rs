@@ -22,7 +22,7 @@ pub fn selected() -> Style {
 }
 
 pub fn status_running() -> Style {
-    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD)
+    Style::default().fg(SUCCESS).add_modifier(Modifier::BOLD)
 }
 
 pub fn status_paused() -> Style {
