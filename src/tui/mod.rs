@@ -31,7 +31,11 @@ enum ActionResult {
 pub async fn run() -> Result<()> {
     let config = Config::load()?;
     if config.token.is_empty() {
-        bail!("Not logged in. Run `sablier login` first.");
+        bail!(
+            "No API token configured.\n\
+             Generate one at your Sablier dashboard (Profile > API Token),\n\
+             then add it to ~/.sablier.yml"
+        );
     }
 
     enable_raw_mode()?;

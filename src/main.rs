@@ -6,7 +6,7 @@ use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "sablier", about = "Terminal client for Sablier time tracker")]
+#[command(name = "sablier", about = "Terminal client for Sablier time tracker\n\nGenerate your API token at your Sablier dashboard (Profile > API Token),\nthen add it to ~/.sablier.yml")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -14,8 +14,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    #[command(about = "Authenticate with your Sablier instance")]
-    Login,
     #[command(about = "Show the currently running timer")]
     Status,
     #[command(about = "Stop the running timer")]
@@ -40,7 +38,6 @@ async fn main() -> Result<()> {
 
 async fn run_command(cmd: Command) -> Result<()> {
     match cmd {
-        Command::Login => cmd_login().await,
         Command::Status => cmd_status().await,
         Command::Stop => cmd_stop().await,
         Command::Pause => cmd_pause().await,
@@ -52,48 +49,15 @@ async fn run_command(cmd: Command) -> Result<()> {
 fn load_authed_config() -> Result<config::Config> {
     let cfg = config::Config::load()?;
     if cfg.token.is_empty() {
-        bail!("Not logged in. Run `sablier login` first.");
+        bail!(
+            "No API token configured.\n\
+             Generate one at your Sablier dashboard (Profile > API Token),\n\
+             then add it to ~/.sablier.yml:\n\n  \
+             server_url: https://your-instance.example.com\n  \
+             token: your-token-here"
+        );
     }
     Ok(cfg)
-}
-
-async fn cmd_login() -> Result<()> {
-    let mut cfg = config::Config::load_or_default();
-
-    if cfg.server_url.is_empty() {
-        eprint!("Server URL: ");
-        let mut url = String::new();
-        std::io::stdin().read_line(&mut url)?;
-        let url = url.trim().to_string();
-        if !url.starts_with("http://") && !url.starts_with("https://") {
-            bail!("URL must start with http:// or https://");
-        }
-        cfg.server_url = url;
-    }
-
-    eprint!("Email: ");
-    let mut email = String::new();
-    std::io::stdin().read_line(&mut email)?;
-    let email = email.trim().to_string();
-
-    let password = rpassword::prompt_password("Password: ")?;
-
-    let client = api::ApiClient::new(&cfg.server_url, "");
-    let resp = client.login(&email, &password).await?;
-
-    cfg.token = resp.token;
-    cfg.save()?;
-
-    let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
-    let user = client.me().await?;
-
-    let name = if user.name.is_empty() {
-        &user.email
-    } else {
-        &user.name
-    };
-    println!("Logged in as {}", name);
-    Ok(())
 }
 
 async fn cmd_status() -> Result<()> {

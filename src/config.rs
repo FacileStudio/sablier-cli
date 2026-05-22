@@ -17,24 +17,16 @@ impl Config {
 
     pub fn load() -> Result<Self> {
         let path = Self::path()?;
-        let contents = std::fs::read_to_string(&path)
-            .with_context(|| format!("cannot read {}\nRun `sablier login` to get started.", path.display()))?;
+        let contents = std::fs::read_to_string(&path).with_context(|| {
+            format!(
+                "cannot read {}\n\
+                 Create ~/.sablier.yml with your server_url and token.\n\
+                 Generate a token at your Sablier dashboard (Profile > API Token).",
+                path.display()
+            )
+        })?;
         let config: Self = serde_yaml::from_str(&contents)
             .with_context(|| format!("invalid config at {}", path.display()))?;
         Ok(config)
-    }
-
-    pub fn load_or_default() -> Self {
-        Self::load().unwrap_or(Self {
-            server_url: String::new(),
-            token: String::new(),
-        })
-    }
-
-    pub fn save(&self) -> Result<()> {
-        let path = Self::path()?;
-        let contents = serde_yaml::to_string(self)?;
-        std::fs::write(&path, contents)?;
-        Ok(())
     }
 }
