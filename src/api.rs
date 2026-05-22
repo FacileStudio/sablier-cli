@@ -12,13 +12,10 @@ pub struct ApiClient {
     client: Client,
 }
 
-#[derive(Deserialize)]
-pub struct LoginResponse {
-    pub token: String,
-}
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct User {
+    #[serde(deserialize_with = "flexible_i64")]
     pub id: i64,
     pub name: String,
     pub email: String,
@@ -46,6 +43,8 @@ pub struct TimeEntry {
     pub id: i64,
     pub project_id: i64,
     pub task_id: i64,
+    #[serde(default)]
+    pub task_name: String,
     pub user_id: i64,
     pub started_at: String,
     pub stopped_at: Option<String>,
@@ -55,8 +54,28 @@ pub struct TimeEntry {
 }
 
 #[derive(Deserialize)]
+struct MeResponse {
+    user: User,
+}
+
+#[derive(Deserialize)]
+struct ProjectsResponse {
+    projects: Vec<Project>,
+}
+
+#[derive(Deserialize)]
+struct TasksResponse {
+    tasks: Vec<Task>,
+}
+
+#[derive(Deserialize)]
 struct RunningResponse {
     entry: Option<TimeEntry>,
+}
+
+#[derive(Deserialize)]
+struct EntriesResponse {
+    entries: Vec<TimeEntry>,
 }
 
 #[derive(Deserialize)]
@@ -70,15 +89,34 @@ struct ErrorDetail {
 }
 
 #[derive(Serialize)]
-struct LoginPayload {
-    email: String,
-    password: String,
-}
-
-#[derive(Serialize)]
 struct StartPayload {
     project_id: i64,
     task_id: i64,
+}
+
+// user_id in responses is a string from the Go backend
+fn flexible_i64<'de, D>(deserializer: D) -> std::result::Result<i64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de;
+    struct Visitor;
+    impl<'de> de::Visitor<'de> for Visitor {
+        type Value = i64;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("an integer or string-encoded integer")
+        }
+        fn visit_i64<E: de::Error>(self, v: i64) -> std::result::Result<i64, E> {
+            Ok(v)
+        }
+        fn visit_u64<E: de::Error>(self, v: u64) -> std::result::Result<i64, E> {
+            Ok(v as i64)
+        }
+        fn visit_str<E: de::Error>(self, v: &str) -> std::result::Result<i64, E> {
+            v.parse().map_err(de::Error::custom)
+        }
+    }
+    deserializer.deserialize_any(Visitor)
 }
 
 impl ApiClient {
@@ -110,19 +148,6 @@ impl ApiClient {
         bail!("{}: {}", status, body);
     }
 
-    pub async fn login(&self, email: &str, password: &str) -> Result<LoginResponse> {
-        let resp = self
-            .client
-            .post(self.url("/auth/login"))
-            .json(&LoginPayload {
-                email: email.to_string(),
-                password: password.to_string(),
-            })
-            .send()
-            .await?;
-        Ok(Self::check(resp).await?.json().await?)
-    }
-
     pub async fn me(&self) -> Result<User> {
         let resp = self
             .client
@@ -130,7 +155,8 @@ impl ApiClient {
             .bearer_auth(&self.token)
             .send()
             .await?;
-        Ok(Self::check(resp).await?.json().await?)
+        let data: MeResponse = Self::check(resp).await?.json().await?;
+        Ok(data.user)
     }
 
     pub async fn projects(&self) -> Result<Vec<Project>> {
@@ -140,7 +166,8 @@ impl ApiClient {
             .bearer_auth(&self.token)
             .send()
             .await?;
-        Ok(Self::check(resp).await?.json().await?)
+        let data: ProjectsResponse = Self::check(resp).await?.json().await?;
+        Ok(data.projects)
     }
 
     pub async fn tasks(&self, project_id: i64) -> Result<Vec<Task>> {
@@ -150,7 +177,8 @@ impl ApiClient {
             .bearer_auth(&self.token)
             .send()
             .await?;
-        Ok(Self::check(resp).await?.json().await?)
+        let data: TasksResponse = Self::check(resp).await?.json().await?;
+        Ok(data.tasks)
     }
 
     pub async fn running_entry(&self) -> Result<Option<TimeEntry>> {
@@ -219,7 +247,8 @@ impl ApiClient {
             .bearer_auth(&self.token)
             .send()
             .await?;
-        Ok(Self::check(resp).await?.json().await?)
+        let data: EntriesResponse = Self::check(resp).await?.json().await?;
+        Ok(data.entries)
     }
 }
 

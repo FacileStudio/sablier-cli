@@ -113,7 +113,7 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
     );
 
     let project_name = app.project_name(entry.project_id);
-    let task_name = app.task_name(entry.task_id);
+    let task_name = app.task_name(entry.task_id, Some(&entry.task_name));
     frame.render_widget(
         Paragraph::new(Line::from(vec![
             Span::styled("Project ", theme::dim()),

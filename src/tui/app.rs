@@ -151,7 +151,12 @@ impl App {
             .unwrap_or_else(|| format!("#{}", project_id))
     }
 
-    pub fn task_name(&self, task_id: i64) -> String {
+    pub fn task_name(&self, task_id: i64, entry_task_name: Option<&str>) -> String {
+        if let Some(name) = entry_task_name {
+            if !name.is_empty() {
+                return name.to_string();
+            }
+        }
         self.task_names
             .get(&task_id)
             .cloned()

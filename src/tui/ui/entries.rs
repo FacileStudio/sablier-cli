@@ -48,7 +48,7 @@ pub fn render(frame: &mut Frame, app: &mut App, area: Rect) {
             };
 
             let project = app.project_name(entry.project_id);
-            let task = app.task_name(entry.task_id);
+            let task = app.task_name(entry.task_id, Some(&entry.task_name));
             let elapsed = entry.elapsed_display();
 
             let status_span = match entry.status_label() {
