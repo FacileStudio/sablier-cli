@@ -65,10 +65,16 @@ fn render_idle(frame: &mut Frame, area: Rect) {
             Span::styled(" to start a new timer", Style::default().fg(theme::SECONDARY)),
         ]),
         Line::from(""),
-        Line::from(Span::styled(
-            "or use  sablier start  from CLI",
-            Style::default().fg(theme::MUTED),
-        )),
+        Line::from(vec![
+            Span::styled("or use ", Style::default().fg(theme::SECONDARY)),
+            Span::styled(
+                "sablier start",
+                Style::default()
+                    .fg(theme::PRIMARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" from CLI", Style::default().fg(theme::SECONDARY)),
+        ]),
     ];
 
     let paragraph = Paragraph::new(lines).alignment(Alignment::Center);
