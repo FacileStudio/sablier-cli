@@ -64,7 +64,8 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             selected,
         } => {
             let selected = *selected;
-            let area = centered_popup(60, tasks.len() as u16 + 5, frame.area());
+            let total_items = tasks.len() + 1; // +1 for "+ New Task"
+            let area = centered_popup(60, total_items as u16 + 5, frame.area());
             frame.render_widget(Clear, area);
 
             let block = Block::default()
@@ -82,17 +83,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             let inner = block.inner(area);
             frame.render_widget(block, area);
 
-            if tasks.is_empty() {
-                let text = Paragraph::new(Line::from(Span::styled(
-                    "No tasks in this project",
-                    theme::dim(),
-                )))
-                .alignment(Alignment::Center);
-                frame.render_widget(text, inner);
-                return;
-            }
-
-            let items: Vec<ListItem> = tasks
+            let mut items: Vec<ListItem> = tasks
                 .iter()
                 .enumerate()
                 .map(|(i, t)| {
@@ -109,9 +100,75 @@ pub fn render(frame: &mut Frame, app: &mut App) {
                 })
                 .collect();
 
+            let new_task_idx = tasks.len();
+            let new_style = if selected == new_task_idx {
+                Style::default()
+                    .fg(theme::ACCENT)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(theme::ACCENT)
+            };
+            let new_prefix = if selected == new_task_idx {
+                " ▸ "
+            } else {
+                "   "
+            };
+            items.push(ListItem::new(Line::from(Span::styled(
+                format!("{}+ New Task", new_prefix),
+                new_style,
+            ))));
+
             let list = List::new(items);
             let mut state = ListState::default().with_selected(Some(selected));
             frame.render_stateful_widget(list, inner, &mut state);
+        }
+        Popup::CreateTask { project, input } => {
+            let area = centered_popup(60, 7, frame.area());
+            frame.render_widget(Clear, area);
+
+            let block = Block::default()
+                .title(format!(" {} — New Task ", project.name))
+                .title_style(
+                    Style::default()
+                        .fg(theme::ACCENT)
+                        .add_modifier(Modifier::BOLD),
+                )
+                .title_alignment(Alignment::Center)
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(theme::ACCENT));
+
+            let inner = block.inner(area);
+            frame.render_widget(block, area);
+
+            let chunks = Layout::default()
+                .direction(ratatui::layout::Direction::Vertical)
+                .constraints([
+                    Constraint::Length(1),
+                    Constraint::Length(1),
+                    Constraint::Length(1),
+                    Constraint::Min(0),
+                ])
+                .split(inner);
+
+            let label = Paragraph::new(Line::from(Span::styled(
+                " Task name:",
+                Style::default().fg(theme::SECONDARY),
+            )));
+            frame.render_widget(label, chunks[0]);
+
+            let cursor_display = format!(" {}_", input);
+            let input_line = Paragraph::new(Line::from(Span::styled(
+                cursor_display,
+                theme::selected(),
+            )));
+            frame.render_widget(input_line, chunks[1]);
+
+            let hint = Paragraph::new(Line::from(Span::styled(
+                " Enter confirm · Esc cancel",
+                theme::dim(),
+            )));
+            frame.render_widget(hint, chunks[2]);
         }
     }
 }

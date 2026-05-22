@@ -65,6 +65,7 @@ async fn run_loop(
     let mut action_task: Option<JoinHandle<Result<ActionResult>>> = None;
     let mut tasks_load: Option<JoinHandle<Result<(Project, Vec<Task>)>>> = None;
     let mut entries_task: Option<JoinHandle<Result<Vec<TimeEntry>>>> = None;
+    let mut create_task_handle: Option<JoinHandle<Result<(Project, Task)>>> = None;
 
     loop {
         terminal.draw(|frame| ui::render(frame, &mut app))?;
@@ -139,6 +140,18 @@ async fn run_loop(
                 tasks_load = Some(tokio::spawn(async move {
                     let tasks = api.tasks(p.id).await?;
                     Ok((p, tasks))
+                }));
+            }
+        }
+
+        if let Some((project, name)) = app.needs_create_task.take() {
+            if create_task_handle.is_none() {
+                let api = new_api(&app);
+                let p = project.clone();
+                let n = name.clone();
+                create_task_handle = Some(tokio::spawn(async move {
+                    let task = api.create_task(p.id, &n).await?;
+                    Ok((p, task))
                 }));
             }
         }
@@ -231,6 +244,22 @@ async fn run_loop(
                     }
                     Err(e) => {
                         app.set_error(format!("Failed to load entries: {}", e));
+                    }
+                }
+            }
+        }
+
+        if let Some(ref handle) = create_task_handle {
+            if handle.is_finished() {
+                let handle = create_task_handle.take().unwrap();
+                match handle.await? {
+                    Ok((project, task)) => {
+                        app.cache_tasks(&[task.clone()]);
+                        app.needs_start = Some((project.id, task.id));
+                        app.set_status(format!("Created task \"{}\" — starting timer...", task.name));
+                    }
+                    Err(e) => {
+                        app.set_error(format!("Failed to create task: {}", e));
                     }
                 }
             }

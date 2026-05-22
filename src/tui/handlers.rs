@@ -145,6 +145,11 @@ fn handle_entries(app: &mut App, key: KeyEvent) {
 }
 
 fn handle_popup(app: &mut App, key: KeyEvent) {
+    if matches!(app.popup, Some(Popup::CreateTask { .. })) {
+        handle_create_task_input(app, key);
+        return;
+    }
+
     match key.code {
         KeyCode::Esc => {
             if matches!(app.popup, Some(Popup::PickTask { .. })) {
@@ -159,7 +164,52 @@ fn handle_popup(app: &mut App, key: KeyEvent) {
         }
         KeyCode::Char('j') | KeyCode::Down => popup_move_down(app),
         KeyCode::Char('k') | KeyCode::Up => popup_move_up(app),
+        KeyCode::Char('g') => popup_jump_top(app),
+        KeyCode::Char('G') => popup_jump_bottom(app),
         KeyCode::Enter => popup_select(app),
+        _ => {}
+    }
+}
+
+fn handle_create_task_input(app: &mut App, key: KeyEvent) {
+    match key.code {
+        KeyCode::Esc => {
+            if let Some(Popup::CreateTask { project, .. }) = app.popup.take() {
+                app.popup = Some(Popup::PickTask {
+                    project,
+                    tasks: Vec::new(),
+                    selected: 0,
+                });
+                app.needs_tasks_load = app
+                    .popup
+                    .as_ref()
+                    .and_then(|p| match p {
+                        Popup::PickTask { project, .. } => Some(project.clone()),
+                        _ => None,
+                    });
+            }
+        }
+        KeyCode::Enter => {
+            if let Some(Popup::CreateTask { project, input }) = app.popup.take() {
+                let name = input.trim().to_string();
+                if name.is_empty() {
+                    app.popup = Some(Popup::CreateTask { project, input });
+                    return;
+                }
+                app.needs_create_task = Some((project, name));
+                app.set_status("Creating task...");
+            }
+        }
+        KeyCode::Backspace => {
+            if let Some(Popup::CreateTask { ref mut input, .. }) = app.popup {
+                input.pop();
+            }
+        }
+        KeyCode::Char(c) => {
+            if let Some(Popup::CreateTask { ref mut input, .. }) = app.popup {
+                input.push(c);
+            }
+        }
         _ => {}
     }
 }
@@ -176,7 +226,8 @@ fn popup_move_down(app: &mut App) {
         Some(Popup::PickTask {
             selected, tasks, ..
         }) => {
-            if *selected < tasks.len().saturating_sub(1) {
+            let max = tasks.len(); // tasks.len() = "+ New Task" item
+            if *selected < max {
                 *selected += 1;
             }
         }
@@ -192,6 +243,26 @@ fn popup_move_up(app: &mut App) {
         Some(Popup::PickTask { selected, .. }) => {
             *selected = selected.saturating_sub(1);
         }
+        _ => {}
+    }
+}
+
+fn popup_jump_top(app: &mut App) {
+    match app.popup.as_mut() {
+        Some(Popup::PickProject { selected, .. }) => *selected = 0,
+        Some(Popup::PickTask { selected, .. }) => *selected = 0,
+        _ => {}
+    }
+}
+
+fn popup_jump_bottom(app: &mut App) {
+    match app.popup.as_mut() {
+        Some(Popup::PickProject {
+            selected, projects, ..
+        }) => *selected = projects.len().saturating_sub(1),
+        Some(Popup::PickTask {
+            selected, tasks, ..
+        }) => *selected = tasks.len(), // tasks.len() = "+ New Task" item
         _ => {}
     }
 }
@@ -214,11 +285,16 @@ fn popup_select(app: &mut App) {
             project,
             ..
         }) => {
-            if let Some(task) = tasks.get(selected) {
+            if selected == tasks.len() {
+                app.popup = Some(Popup::CreateTask {
+                    project,
+                    input: String::new(),
+                });
+            } else if let Some(task) = tasks.get(selected) {
                 app.needs_start = Some((project.id, task.id));
                 app.set_status("Starting timer...");
             }
         }
-        None => {}
+        Some(Popup::CreateTask { .. }) | None => {}
     }
 }

@@ -94,6 +94,16 @@ struct StartPayload {
     task_id: i64,
 }
 
+#[derive(Serialize)]
+struct CreateTaskPayload {
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct CreateTaskResponse {
+    task: Task,
+}
+
 // user_id in responses is a string from the Go backend
 fn flexible_i64<'de, D>(deserializer: D) -> std::result::Result<i64, D::Error>
 where
@@ -234,6 +244,20 @@ impl ApiClient {
             .send()
             .await?;
         Ok(Self::check(resp).await?.json().await?)
+    }
+
+    pub async fn create_task(&self, project_id: i64, name: &str) -> Result<Task> {
+        let resp = self
+            .client
+            .post(self.url(&format!("/projects/{}/tasks", project_id)))
+            .bearer_auth(&self.token)
+            .json(&CreateTaskPayload {
+                name: name.to_string(),
+            })
+            .send()
+            .await?;
+        let data: CreateTaskResponse = Self::check(resp).await?.json().await?;
+        Ok(data.task)
     }
 
     pub async fn entries(&self, user_id: Option<i64>) -> Result<Vec<TimeEntry>> {

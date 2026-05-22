@@ -21,6 +21,10 @@ pub enum Popup {
         tasks: Vec<Task>,
         selected: usize,
     },
+    CreateTask {
+        project: Project,
+        input: String,
+    },
 }
 
 pub const MENU_ITEMS: &[(&str, Screen)] = &[
@@ -61,6 +65,7 @@ pub struct App {
     pub needs_entries_load: bool,
     pub needs_tasks_load: Option<Project>,
     pub needs_start: Option<(i64, i64)>,
+    pub needs_create_task: Option<(Project, String)>,
     pub needs_stop: bool,
     pub needs_pause: bool,
     pub needs_resume: bool,
@@ -91,6 +96,7 @@ impl App {
             needs_entries_load: false,
             needs_tasks_load: None,
             needs_start: None,
+            needs_create_task: None,
             needs_stop: false,
             needs_pause: false,
             needs_resume: false,
