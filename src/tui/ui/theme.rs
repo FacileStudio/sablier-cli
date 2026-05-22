@@ -6,6 +6,7 @@ pub const SUCCESS: Color = Color::Green;
 pub const ERROR: Color = Color::Red;
 pub const PAUSED: Color = Color::Magenta;
 pub const MUTED: Color = Color::DarkGray;
+pub const SECONDARY: Color = Color::Gray;
 pub fn bold() -> Style {
     Style::default().add_modifier(Modifier::BOLD)
 }

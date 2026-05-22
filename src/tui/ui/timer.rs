@@ -51,27 +51,23 @@ fn render_idle(frame: &mut Frame, area: Rect) {
     let lines = vec![
         Line::from(Span::styled(
             "No timer running",
-            Style::default()
-                .fg(theme::MUTED)
-                .add_modifier(Modifier::DIM),
+            Style::default().fg(theme::SECONDARY),
         )),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Press ", theme::dim()),
+            Span::styled("Press ", Style::default().fg(theme::SECONDARY)),
             Span::styled(
                 " n ",
                 Style::default()
                     .fg(theme::PRIMARY)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(" to start a new timer", theme::dim()),
+            Span::styled(" to start a new timer", Style::default().fg(theme::SECONDARY)),
         ]),
         Line::from(""),
         Line::from(Span::styled(
             "or use  sablier start  from CLI",
-            Style::default()
-                .fg(theme::MUTED)
-                .add_modifier(Modifier::DIM),
+            Style::default().fg(theme::MUTED),
         )),
     ];
 
@@ -183,7 +179,7 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
     let task_name = app.task_name(entry.task_id, Some(&entry.task_name));
     frame.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled("Project ", theme::dim()),
+            Span::styled("Project ", Style::default().fg(theme::SECONDARY)),
             Span::styled(project_name, theme::bold()),
         ]))
         .alignment(Alignment::Center),
@@ -192,7 +188,7 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
 
     frame.render_widget(
         Paragraph::new(Line::from(vec![
-            Span::styled("Task    ", theme::dim()),
+            Span::styled("Task    ", Style::default().fg(theme::SECONDARY)),
             Span::styled(task_name, theme::bold()),
         ]))
         .alignment(Alignment::Center),
