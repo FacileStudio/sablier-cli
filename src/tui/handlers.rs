@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
-use super::app::{App, Focus, Popup, Screen, MENU_ITEMS};
+use super::app::{App, Popup, Screen};
 
 pub fn handle_key(app: &mut App, key: KeyEvent) {
     if key.kind != KeyEventKind::Press {
@@ -22,11 +22,12 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         return;
     }
 
-    if key.code == KeyCode::Tab || key.code == KeyCode::BackTab {
-        app.focus = match app.focus {
-            Focus::Sidebar => Focus::Content,
-            Focus::Content => Focus::Sidebar,
-        };
+    if key.code == KeyCode::Tab {
+        app.tab_next_screen();
+        return;
+    }
+    if key.code == KeyCode::BackTab {
+        app.tab_prev_screen();
         return;
     }
 
@@ -46,31 +47,10 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         _ => {}
     }
 
-    match app.focus {
-        Focus::Sidebar => handle_sidebar(app, key),
-        Focus::Content => match app.screen {
-            Screen::Timer => handle_timer(app, key),
-            Screen::Projects => handle_projects(app, key),
-            Screen::Entries => handle_entries(app, key),
-        },
-    }
-}
-
-fn handle_sidebar(app: &mut App, key: KeyEvent) {
-    match key.code {
-        KeyCode::Char('j') | KeyCode::Down => {
-            if app.menu_selected < MENU_ITEMS.len() - 1 {
-                app.menu_selected += 1;
-            }
-        }
-        KeyCode::Char('k') | KeyCode::Up => {
-            app.menu_selected = app.menu_selected.saturating_sub(1);
-        }
-        KeyCode::Enter | KeyCode::Char('l') | KeyCode::Right => {
-            let (_, screen) = MENU_ITEMS[app.menu_selected];
-            app.navigate_to(screen);
-        }
-        _ => {}
+    match app.screen {
+        Screen::Timer => handle_timer(app, key),
+        Screen::Projects => handle_projects(app, key),
+        Screen::Entries => handle_entries(app, key),
     }
 }
 

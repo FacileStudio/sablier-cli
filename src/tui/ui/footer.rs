@@ -40,8 +40,8 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
                 Some(_) => " s stop · p pause · n new · q quit",
                 None => " n new timer · r refresh · q quit",
             },
-            Screen::Projects => " j/k navigate · Tab sidebar · q quit",
-            Screen::Entries => " j/k navigate · r refresh · Tab sidebar · q quit",
+            Screen::Projects => " j/k navigate · Tab/S-Tab switch · q quit",
+            Screen::Entries => " j/k navigate · r refresh · Tab/S-Tab switch · q quit",
         }
     };
 

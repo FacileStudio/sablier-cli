@@ -10,12 +10,6 @@ pub enum Screen {
     Entries,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Focus {
-    Sidebar,
-    Content,
-}
-
 #[derive(Debug, Clone)]
 pub enum Popup {
     PickProject {
@@ -39,7 +33,6 @@ pub struct App {
     pub config: Config,
 
     pub screen: Screen,
-    pub focus: Focus,
     pub menu_selected: usize,
 
     pub user: Option<User>,
@@ -78,7 +71,6 @@ impl App {
         Self {
             config,
             screen: Screen::Timer,
-            focus: Focus::Content,
             menu_selected: 0,
             user: None,
             running_entry: None,
@@ -105,9 +97,24 @@ impl App {
         }
     }
 
+    pub fn tab_next_screen(&mut self) {
+        match self.screen {
+            Screen::Timer => self.navigate_to(Screen::Projects),
+            Screen::Projects => self.navigate_to(Screen::Entries),
+            Screen::Entries => self.navigate_to(Screen::Timer),
+        }
+    }
+
+    pub fn tab_prev_screen(&mut self) {
+        match self.screen {
+            Screen::Timer => self.navigate_to(Screen::Entries),
+            Screen::Projects => self.navigate_to(Screen::Timer),
+            Screen::Entries => self.navigate_to(Screen::Projects),
+        }
+    }
+
     pub fn navigate_to(&mut self, screen: Screen) {
         self.screen = screen;
-        self.focus = Focus::Content;
         self.menu_selected = MENU_ITEMS
             .iter()
             .position(|(_, s)| *s == screen)

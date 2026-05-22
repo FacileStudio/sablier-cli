@@ -6,18 +6,12 @@ use ratatui::{
     Frame,
 };
 
-use crate::tui::app::{App, Focus, MENU_ITEMS};
+use crate::tui::app::{App, MENU_ITEMS};
 
 use super::theme;
 
 pub fn render(frame: &mut Frame, app: &App, area: Rect) {
-    let is_focused = app.focus == Focus::Sidebar;
-
-    let border_style = if is_focused {
-        Style::default().fg(theme::PRIMARY)
-    } else {
-        Style::default().fg(theme::MUTED)
-    };
+    let border_style = Style::default().fg(theme::MUTED);
 
     let block = Block::default()
         .borders(Borders::RIGHT)
@@ -56,12 +50,10 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
     for (i, (label, _)) in MENU_ITEMS.iter().enumerate() {
         let is_sel = i == app.menu_selected;
         let prefix = if is_sel { " ▸ " } else { "   " };
-        let style = if is_sel && is_focused {
+        let style = if is_sel {
             Style::default()
                 .fg(theme::PRIMARY)
                 .add_modifier(Modifier::BOLD)
-        } else if is_sel {
-            theme::bold()
         } else {
             theme::dim()
         };
