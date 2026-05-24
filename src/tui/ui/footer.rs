@@ -32,7 +32,7 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
     let hints = if matches!(app.popup, Some(crate::tui::app::Popup::CreateTask { .. })) {
         " Type task name · Enter confirm · Esc cancel"
     } else if app.popup.is_some() {
-        " j/k navigate · g/G top/bottom · Enter confirm · Esc back"
+        " j/k navigate · gg/G top/bottom · Enter confirm · Esc back"
     } else {
         match app.screen {
             Screen::Timer => match &app.running_entry {

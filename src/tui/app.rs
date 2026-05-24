@@ -52,6 +52,7 @@ pub struct App {
 
     pub popup: Option<Popup>,
     pub popup_cancelled: bool,
+    pub pending_g: bool,
 
     pub status_message: Option<String>,
     pub error_message: Option<String>,
@@ -86,6 +87,7 @@ impl App {
             entry_selected: 0,
             popup: None,
             popup_cancelled: false,
+            pending_g: false,
             status_message: None,
             error_message: None,
             status_ttl: 0,

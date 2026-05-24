@@ -12,6 +12,22 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         return;
     }
 
+    if app.pending_g && !matches!(app.popup, Some(Popup::CreateTask { .. })) {
+        app.pending_g = false;
+        if key.code == KeyCode::Char('g') {
+            if app.popup.is_some() {
+                popup_jump_top(app);
+            } else {
+                match app.screen {
+                    Screen::Projects => app.project_selected = 0,
+                    Screen::Entries => app.entry_selected = 0,
+                    _ => {}
+                }
+            }
+            return;
+        }
+    }
+
     if app.popup.is_some() {
         handle_popup(app, key);
         return;
@@ -106,7 +122,7 @@ fn handle_projects(app: &mut App, key: KeyEvent) {
             app.project_selected = app.project_selected.saturating_sub(1);
         }
         KeyCode::Char('g') => {
-            app.project_selected = 0;
+            app.pending_g = true;
         }
         KeyCode::Char('G') => {
             app.project_selected = app.projects.len().saturating_sub(1);
@@ -132,7 +148,7 @@ fn handle_entries(app: &mut App, key: KeyEvent) {
             app.entry_selected = app.entry_selected.saturating_sub(1);
         }
         KeyCode::Char('g') => {
-            app.entry_selected = 0;
+            app.pending_g = true;
         }
         KeyCode::Char('G') => {
             app.entry_selected = app.entries.len().saturating_sub(1);
@@ -164,7 +180,7 @@ fn handle_popup(app: &mut App, key: KeyEvent) {
         }
         KeyCode::Char('j') | KeyCode::Down => popup_move_down(app),
         KeyCode::Char('k') | KeyCode::Up => popup_move_up(app),
-        KeyCode::Char('g') => popup_jump_top(app),
+        KeyCode::Char('g') => app.pending_g = true,
         KeyCode::Char('G') => popup_jump_bottom(app),
         KeyCode::Enter => popup_select(app),
         _ => {}

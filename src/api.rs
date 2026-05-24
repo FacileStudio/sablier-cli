@@ -33,8 +33,10 @@ pub struct Project {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Task {
+    #[serde(deserialize_with = "flexible_i64")]
     pub id: i64,
     pub name: String,
+    #[serde(deserialize_with = "flexible_i64")]
     pub project_id: i64,
 }
 
@@ -256,8 +258,14 @@ impl ApiClient {
             })
             .send()
             .await?;
-        let data: CreateTaskResponse = Self::check(resp).await?.json().await?;
-        Ok(data.task)
+        let body = Self::check(resp).await?.text().await?;
+        if let Ok(data) = serde_json::from_str::<CreateTaskResponse>(&body) {
+            return Ok(data.task);
+        }
+        if let Ok(task) = serde_json::from_str::<Task>(&body) {
+            return Ok(task);
+        }
+        bail!("unexpected create-task response: {}", body);
     }
 
     pub async fn entries(&self, user_id: Option<i64>) -> Result<Vec<TimeEntry>> {

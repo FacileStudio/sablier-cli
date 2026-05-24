@@ -108,7 +108,7 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
     let elapsed = entry.elapsed_display();
     let is_paused = entry.is_paused();
 
-    let time_color = if is_paused { theme::PAUSED } else { theme::SUCCESS };
+    let time_color = if is_paused { theme::PAUSED } else { theme::PRIMARY };
 
     let pixel_size = pick_pixel_size(area.height, area.width);
 
