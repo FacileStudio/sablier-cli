@@ -181,7 +181,6 @@ async fn cmd_upgrade() -> Result<()> {
             "--git",
             "https://github.com/FacileStudio/sablier-cli.git",
             "--force",
-            "--quiet",
         ])
         .status()?;
     if !status.success() {
