@@ -39,3 +39,8 @@ sablier upgrade    # update to latest version
 | `g/G` | Top / Bottom |
 | `Tab` | Switch screen |
 | `q` | Quit |
+
+## AI agent integration
+
+`install.sh` auto-registers sablier as an AI agent skill for Claude Code and Codex.
+After installation, AI coding assistants can use sablier commands directly when you ask about time tracking.
