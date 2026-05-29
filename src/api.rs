@@ -36,8 +36,14 @@ pub struct Task {
     #[serde(deserialize_with = "flexible_i64")]
     pub id: i64,
     pub name: String,
+    #[serde(default = "default_status")]
+    pub status: String,
     #[serde(deserialize_with = "flexible_i64")]
     pub project_id: i64,
+}
+
+fn default_status() -> String {
+    "to-do".to_string()
 }
 
 #[derive(Deserialize, Clone, Debug)]
