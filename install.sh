@@ -13,7 +13,7 @@ REPO="FacileStudio/sablier-cli"
 BRANCH="main"
 BUILD="rust"
 SRC_SUBDIR="."
-ASSET=""
+ASSET="sablier"
 SKILL="sablier"
 GO_VERSION_VAR=""
 
