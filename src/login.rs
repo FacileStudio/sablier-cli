@@ -36,11 +36,7 @@ pub async fn run(server: Option<String>) -> Result<()> {
         .context("cannot open a loopback port to receive the login")?;
     let port = listener.local_addr()?.port();
 
-    let url = format!(
-        "{}/api/auth/oidc?flow=cli&port={}",
-        server.trim_end_matches('/'),
-        port
-    );
+    let url = format!("{api}/auth/oidc?flow=cli&port={port}");
     ui::step(&format!("Opening {url}"));
     if open_browser(&url).is_err() {
         ui::hint("Could not open a browser — paste that URL into one.");
@@ -51,9 +47,9 @@ pub async fn run(server: Option<String>) -> Result<()> {
         Err(_) => bail!("timed out waiting for the browser, run `sablier login` again"),
     };
 
-    let token = exchange(&server, &code).await?;
+    let token = exchange(&api, &code).await?;
     let config = Config {
-        server_url: server,
+        server_url: api,
         token,
     };
     config.save()?;
