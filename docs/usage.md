@@ -27,6 +27,37 @@ sablier
 
 Fails before touching the terminal if the config file is missing or the token is empty.
 
+## `sablier login`
+
+Sign in through the browser and write the token to `~/.sablier.yml`.
+
+| Flag | Type | Default | What it does |
+|---|---|---|---|
+| `--server <SERVER>` | `string` | the stored `server_url` | Sablier instance, e.g. `https://sablier.facile.studio` |
+
+```sh
+sablier login --server https://sablier.facile.studio
+```
+
+The CLI opens a loopback port, sends the browser to `/auth/oidc`, and exchanges the one-time
+code the API redirects back with. The file is created mode `0600`.
+
+## `sablier logout`
+
+Forget the stored token. `server_url` is kept, so signing back in does not mean retyping
+which Sablier this is.
+
+```sh
+sablier logout
+```
+
+```
+✓ Signed out. Token removed from /Users/you/.sablier.yml
+```
+
+Prints `▸ Not signed in` when there was no token, and fails when there is no config file at
+all.
+
 ## `sablier start`
 
 Start a timer. With no flags it opens a fuzzy-search picker for the project, then one for

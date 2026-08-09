@@ -29,6 +29,8 @@ enum Command {
         #[arg(long, help = "Server URL, e.g. https://sablier.facile.studio")]
         server: Option<String>,
     },
+    #[command(about = "Sign out and forget the stored token")]
+    Logout,
     #[command(about = "Start a new timer (interactive project/task picker)")]
     Start {
         #[arg(long, help = "Project ID (skip interactive picker)")]
@@ -71,6 +73,7 @@ async fn main() {
 async fn run_command(cmd: Command) -> Result<()> {
     match cmd {
         Command::Login { server } => login::run(server).await,
+        Command::Logout => cmd_logout(),
         Command::Start {
             project_id,
             task_id,
@@ -95,6 +98,18 @@ fn load_authed_config() -> Result<config::Config> {
         );
     }
     Ok(cfg)
+}
+
+fn cmd_logout() -> Result<()> {
+    if config::Config::clear()? {
+        ui::success(&format!(
+            "Signed out. Token removed from {}",
+            config::Config::path()?.display()
+        ));
+    } else {
+        ui::step("Not signed in");
+    }
+    Ok(())
 }
 
 async fn cmd_start(project_id: Option<i64>, task_id: Option<i64>) -> Result<()> {

@@ -28,6 +28,13 @@ sablier resume                 Resume paused timer
 sablier status                 Show current timer
 ```
 
+### Session
+```
+sablier login                  Sign in through the browser
+  --server <url>              Sablier instance URL
+sablier logout                 Forget the stored token, keep the server URL
+```
+
 ### Projects
 ```
 sablier projects               List available projects

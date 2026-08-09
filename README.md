@@ -44,6 +44,8 @@ cargo install --git https://github.com/FacileStudio/sablier-cli.git --force
 
 ```sh
 sablier            # TUI
+sablier login      # sign in through the browser
+sablier logout     # forget the token, keep the server URL
 sablier start      # start a timer, interactive project then task picker
 sablier status     # 00:42:17 Running — Facile Suite
 sablier stop       # ✓ Stopped — total 00:42:31
