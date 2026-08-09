@@ -62,7 +62,10 @@ fn render_idle(frame: &mut Frame, area: Rect) {
                     .fg(theme::PRIMARY)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(" to start a new timer", Style::default().fg(theme::SECONDARY)),
+            Span::styled(
+                " to start a new timer",
+                Style::default().fg(theme::SECONDARY),
+            ),
         ]),
         Line::from(""),
         Line::from(vec![
@@ -108,7 +111,11 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
     let elapsed = entry.elapsed_display();
     let is_paused = entry.is_paused();
 
-    let time_color = if is_paused { theme::PAUSED } else { theme::PRIMARY };
+    let time_color = if is_paused {
+        theme::PAUSED
+    } else {
+        theme::PRIMARY
+    };
 
     let pixel_size = pick_pixel_size(area.height, area.width);
 
@@ -143,10 +150,7 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
                 Span::styled(parts[2], Style::default().fg(time_color)),
             ])
         } else {
-            Line::from(Span::styled(
-                &elapsed,
-                Style::default().fg(time_color),
-            ))
+            Line::from(Span::styled(&elapsed, Style::default().fg(time_color)))
         };
 
         let big_text = BigText::builder()
@@ -166,10 +170,7 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
             &elapsed,
             time_style.add_modifier(Modifier::BOLD),
         ));
-        frame.render_widget(
-            Paragraph::new(line).alignment(Alignment::Center),
-            chunks[1],
-        );
+        frame.render_widget(Paragraph::new(line).alignment(Alignment::Center), chunks[1]);
     }
 
     let (status_text, status_style) = if is_paused {
@@ -205,20 +206,50 @@ fn render_running(frame: &mut Frame, app: &App, entry: crate::api::TimeEntry, ar
 
     let hints = if is_paused {
         vec![
-            Span::styled("s", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "s",
+                Style::default()
+                    .fg(theme::PRIMARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" stop  ", Style::default().fg(theme::SECONDARY)),
-            Span::styled("r", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "r",
+                Style::default()
+                    .fg(theme::PRIMARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" resume  ", Style::default().fg(theme::SECONDARY)),
-            Span::styled("n", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "n",
+                Style::default()
+                    .fg(theme::PRIMARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" new", Style::default().fg(theme::SECONDARY)),
         ]
     } else {
         vec![
-            Span::styled("s", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "s",
+                Style::default()
+                    .fg(theme::PRIMARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" stop  ", Style::default().fg(theme::SECONDARY)),
-            Span::styled("p", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "p",
+                Style::default()
+                    .fg(theme::PRIMARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" pause  ", Style::default().fg(theme::SECONDARY)),
-            Span::styled("n", Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "n",
+                Style::default()
+                    .fg(theme::PRIMARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::styled(" new", Style::default().fg(theme::SECONDARY)),
         ]
     };

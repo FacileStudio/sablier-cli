@@ -13,7 +13,11 @@ use super::theme;
 pub fn render(frame: &mut Frame, app: &mut App, area: Rect) {
     let block = Block::default()
         .title(" Projects ")
-        .title_style(Style::default().fg(theme::PRIMARY).add_modifier(Modifier::BOLD))
+        .title_style(
+            Style::default()
+                .fg(theme::PRIMARY)
+                .add_modifier(Modifier::BOLD),
+        )
         .borders(Borders::NONE)
         .padding(Padding::new(2, 2, 1, 0));
 
@@ -21,10 +25,7 @@ pub fn render(frame: &mut Frame, app: &mut App, area: Rect) {
     frame.render_widget(block, area);
 
     if app.projects.is_empty() {
-        let text = Paragraph::new(Line::from(Span::styled(
-            "No projects found",
-            theme::dim(),
-        )));
+        let text = Paragraph::new(Line::from(Span::styled("No projects found", theme::dim())));
         frame.render_widget(text, inner);
         return;
     }

@@ -36,9 +36,7 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
     } else {
         match app.screen {
             Screen::Timer => match &app.running_entry {
-                Some(entry) if entry.is_paused() => {
-                    " s stop · r resume · n new · q quit"
-                }
+                Some(entry) if entry.is_paused() => " s stop · r resume · n new · q quit",
                 Some(_) => " s stop · p pause · n new · q quit",
                 None => " n new timer · r refresh · q quit",
             },

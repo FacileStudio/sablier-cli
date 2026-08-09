@@ -16,9 +16,7 @@ pub fn dim() -> Style {
 }
 
 pub fn selected() -> Style {
-    Style::default()
-        .fg(PRIMARY)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(PRIMARY).add_modifier(Modifier::BOLD)
 }
 
 pub fn status_running() -> Style {
@@ -28,4 +26,3 @@ pub fn status_running() -> Style {
 pub fn status_paused() -> Style {
     Style::default().fg(PAUSED).add_modifier(Modifier::BOLD)
 }
-

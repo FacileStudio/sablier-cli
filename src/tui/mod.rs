@@ -256,7 +256,10 @@ async fn run_loop(
                     Ok((project, task)) => {
                         app.cache_tasks(&[task.clone()]);
                         app.needs_start = Some((project.id, task.id));
-                        app.set_status(format!("Created task \"{}\" — starting timer...", task.name));
+                        app.set_status(format!(
+                            "Created task \"{}\" — starting timer...",
+                            task.name
+                        ));
                     }
                     Err(e) => {
                         app.set_error(format!("Failed to create task: {}", e));

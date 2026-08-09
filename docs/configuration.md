@@ -23,9 +23,23 @@ then fails the `load_authed_config()` check with a message telling you to genera
 
 ## Getting a token
 
-Generate it in the Sablier dashboard under **Profile > API Token**, then paste it into
-`~/.sablier.yml`. The CLI has no `login` command, never writes the config file, and never
-prompts for credentials.
+```
+sablier login --server https://sablier.facile.studio
+```
+
+This opens your browser, signs you in through the identity provider, and writes both keys to
+`~/.sablier.yml` with mode `0600`. The `--server` value may be the bare host or the API root —
+it is normalised to end in `/api`, which is what every later request is appended to. On a
+machine that already has a config, `sablier login` alone re-uses the stored `server_url`.
+
+The CLI never sees the identity provider, never handles a password, and never holds an
+authorization code. It opens a loopback port, sends the browser to
+`/api/auth/oidc?flow=cli&port=N`, and the API redirects back to that port with a one-time code
+valid for sixty seconds and usable once. If no browser can be opened, the URL is printed to
+paste by hand.
+
+A token can still be generated in the dashboard under **Profile > API Token** and pasted in.
+That is now the fallback rather than the only way.
 
 ## Token storage
 

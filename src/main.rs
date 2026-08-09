@@ -1,19 +1,34 @@
 mod api;
 mod config;
+mod login;
 mod tui;
+mod ui;
 
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "sablier", about = "Terminal client for Sablier time tracker\n\nGenerate your API token at your Sablier dashboard (Profile > API Token),\nthen add it to ~/.sablier.yml")]
+#[command(
+    name = "sablier",
+    version,
+    about = "Terminal client for Sablier time tracking",
+    long_about = "Terminal client for Sablier time tracking.\n\nRun with no arguments for the full-screen TUI, or with a subcommand to drive\ntimers from a shell.\n\nGenerate your API token at your Sablier dashboard (Profile > API Token), then\nrun `sablier login` to sign in."
+)]
 struct Cli {
+    #[arg(long, global = true, help = "Disable colored output")]
+    no_color: bool,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
 
 #[derive(Subcommand)]
 enum Command {
+    #[command(about = "Sign in through the browser and store the token")]
+    Login {
+        #[arg(long, help = "Server URL, e.g. https://sablier.facile.studio")]
+        server: Option<String>,
+    },
     #[command(about = "Start a new timer (interactive project/task picker)")]
     Start {
         #[arg(long, help = "Project ID (skip interactive picker)")]
@@ -36,18 +51,30 @@ enum Command {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     let cli = Cli::parse();
+    if cli.no_color {
+        ui::disable_color();
+    }
 
-    match cli.command {
+    let result = match cli.command {
         None => tui::run().await,
         Some(cmd) => run_command(cmd).await,
+    };
+
+    if let Err(e) = result {
+        ui::error(&format!("{e:#}"));
+        std::process::exit(1);
     }
 }
 
 async fn run_command(cmd: Command) -> Result<()> {
     match cmd {
-        Command::Start { project_id, task_id } => cmd_start(project_id, task_id).await,
+        Command::Login { server } => login::run(server).await,
+        Command::Start {
+            project_id,
+            task_id,
+        } => cmd_start(project_id, task_id).await,
         Command::Status => cmd_status().await,
         Command::Stop => cmd_stop().await,
         Command::Pause => cmd_pause().await,
@@ -61,9 +88,8 @@ fn load_authed_config() -> Result<config::Config> {
     let cfg = config::Config::load()?;
     if cfg.token.is_empty() {
         bail!(
-            "No API token configured.\n\
-             Generate one at your Sablier dashboard (Profile > API Token),\n\
-             then add it to ~/.sablier.yml:\n\n  \
+            "no API token configured — generate one at your Sablier dashboard\n  \
+             (Profile > API Token), then add it to ~/.sablier.yml:\n\n  \
              server_url: https://your-instance.example.com\n  \
              token: your-token-here"
         );
@@ -80,7 +106,7 @@ async fn cmd_start(project_id: Option<i64>, task_id: Option<i64>) -> Result<()> 
         (Some(p), None) => {
             let tasks = client.tasks(p).await?;
             if tasks.is_empty() {
-                bail!("No tasks found for project {}", p);
+                bail!("no tasks in project {}", p);
             }
             let names: Vec<String> = tasks.iter().map(|t| t.name.clone()).collect();
             let selection = dialoguer::FuzzySelect::new()
@@ -93,7 +119,7 @@ async fn cmd_start(project_id: Option<i64>, task_id: Option<i64>) -> Result<()> 
         _ => {
             let projects = client.projects().await?;
             if projects.is_empty() {
-                bail!("No projects found");
+                bail!("no projects available");
             }
             let proj_names: Vec<String> = projects.iter().map(|p| p.name.clone()).collect();
             let proj_sel = dialoguer::FuzzySelect::new()
@@ -105,7 +131,7 @@ async fn cmd_start(project_id: Option<i64>, task_id: Option<i64>) -> Result<()> 
 
             let tasks = client.tasks(project.id).await?;
             if tasks.is_empty() {
-                bail!("No tasks found for project \"{}\"", project.name);
+                bail!("no tasks in project \"{}\"", project.name);
             }
             let task_names: Vec<String> = tasks.iter().map(|t| t.name.clone()).collect();
             let task_sel = dialoguer::FuzzySelect::new()
@@ -124,7 +150,7 @@ async fn cmd_start(project_id: Option<i64>, task_id: Option<i64>) -> Result<()> 
         .find(|p| p.id == entry.project_id)
         .map(|p| p.name.as_str())
         .unwrap_or("?");
-    println!("Timer started — {}", project_name);
+    ui::success(&format!("Timer started — {}", project_name));
     Ok(())
 }
 
@@ -144,7 +170,7 @@ async fn cmd_status() -> Result<()> {
                 .unwrap_or("?");
             println!("{} {} — {}", elapsed, status, project_name);
         }
-        None => println!("No timer running."),
+        None => ui::step("No timer running"),
     }
     Ok(())
 }
@@ -153,7 +179,7 @@ async fn cmd_stop() -> Result<()> {
     let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     let entry = client.stop().await?;
-    println!("Stopped. Total: {}", entry.elapsed_display());
+    ui::success(&format!("Stopped — total {}", entry.elapsed_display()));
     Ok(())
 }
 
@@ -161,7 +187,7 @@ async fn cmd_pause() -> Result<()> {
     let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     client.pause().await?;
-    println!("Timer paused.");
+    ui::success("Timer paused");
     Ok(())
 }
 
@@ -169,12 +195,12 @@ async fn cmd_resume() -> Result<()> {
     let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     client.resume().await?;
-    println!("Timer resumed.");
+    ui::success("Timer resumed");
     Ok(())
 }
 
 async fn cmd_upgrade() -> Result<()> {
-    println!("Upgrading sablier...");
+    ui::step("Upgrading sablier");
     let status = std::process::Command::new("cargo")
         .args([
             "install",
@@ -184,9 +210,9 @@ async fn cmd_upgrade() -> Result<()> {
         ])
         .status()?;
     if !status.success() {
-        bail!("Upgrade failed");
+        bail!("upgrade failed — run `cargo install --git https://github.com/FacileStudio/sablier-cli.git --force` manually");
     }
-    println!("Upgraded to latest version.");
+    ui::success("Upgraded to the latest version");
     Ok(())
 }
 
@@ -196,7 +222,7 @@ async fn cmd_projects() -> Result<()> {
     let projects = client.projects().await?;
 
     if projects.is_empty() {
-        println!("No projects.");
+        ui::step("No projects");
         return Ok(());
     }
 

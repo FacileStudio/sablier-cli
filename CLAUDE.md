@@ -72,7 +72,14 @@ server_url: https://your-instance.example.com
 token: your-api-token
 ```
 
-Generate your API token at the Sablier dashboard under Profile > API Token.
+`sablier login` writes this file: it opens a loopback port, sends the browser to
+`/api/auth/oidc?flow=cli&port=N`, and trades the one-time code the API redirects back with for a
+token at `/api/auth/oidc/exchange`. That flow is porte's, shared with the rest of the suite.
+Generating a token by hand in the dashboard under Profile > API Token still works.
+
+`server_url` must include `/api` — `api::url` appends paths to it verbatim. `login::api_base`
+normalises whatever is passed to `--server`, which is why the bare host is accepted there and
+nowhere else.
 
 ## Architecture notes
 

@@ -158,10 +158,8 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             frame.render_widget(label, chunks[0]);
 
             let cursor_display = format!(" {}_", input);
-            let input_line = Paragraph::new(Line::from(Span::styled(
-                cursor_display,
-                theme::selected(),
-            )));
+            let input_line =
+                Paragraph::new(Line::from(Span::styled(cursor_display, theme::selected())));
             frame.render_widget(input_line, chunks[1]);
 
             let hint = Paragraph::new(Line::from(Span::styled(

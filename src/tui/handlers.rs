@@ -196,13 +196,10 @@ fn handle_create_task_input(app: &mut App, key: KeyEvent) {
                     tasks: Vec::new(),
                     selected: 0,
                 });
-                app.needs_tasks_load = app
-                    .popup
-                    .as_ref()
-                    .and_then(|p| match p {
-                        Popup::PickTask { project, .. } => Some(project.clone()),
-                        _ => None,
-                    });
+                app.needs_tasks_load = app.popup.as_ref().and_then(|p| match p {
+                    Popup::PickTask { project, .. } => Some(project.clone()),
+                    _ => None,
+                });
             }
         }
         KeyCode::Enter => {

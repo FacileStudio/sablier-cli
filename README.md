@@ -32,9 +32,9 @@ timers straight from a shell.
 curl -fsSL https://raw.githubusercontent.com/FacileStudio/sablier-cli/main/install.sh | bash
 ```
 
-The installer needs `cargo` and `git` on `PATH`. It shallow-clones the repo, runs
-`cargo install --path`, and registers the AI agent skill described in
-[docs/usage.md](docs/usage.md). Without the installer:
+Installs to `~/.local/bin`. Pass `--bin-dir <dir>` to change that, `--source` to build from
+source, `--no-skill` to skip AI agent skill registration. Building from source needs `cargo`
+and `git` on `PATH`. The AI agent skill is described in [docs/usage.md](docs/usage.md).
 
 ```sh
 cargo install --git https://github.com/FacileStudio/sablier-cli.git --force
@@ -46,7 +46,7 @@ cargo install --git https://github.com/FacileStudio/sablier-cli.git --force
 sablier            # TUI
 sablier start      # start a timer, interactive project then task picker
 sablier status     # 00:42:17 Running — Facile Suite
-sablier stop       # Stopped. Total: 00:42:31
+sablier stop       # ✓ Stopped — total 00:42:31
 sablier pause
 sablier resume
 sablier projects   # list projects
@@ -70,8 +70,10 @@ token: your-api-token
 | `server_url` | Base URL prefixed to every request. Must include the `/api` path |
 | `token` | Sablier API token, sent as `Authorization: Bearer <token>` |
 
-Generate the token in the Sablier dashboard under Profile > API Token. Full reference:
-[docs/configuration.md](docs/configuration.md).
+Run `sablier login --server https://sablier.example.com` and the file is written for you: the
+browser opens, the identity provider signs you in, and the token lands in `~/.sablier.yml` with
+mode `0600`. A token generated in the dashboard under Profile > API Token still works if you
+prefer to paste one. Full reference: [docs/configuration.md](docs/configuration.md).
 
 ## Structure
 

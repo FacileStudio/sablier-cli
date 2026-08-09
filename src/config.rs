@@ -15,13 +15,29 @@ impl Config {
         Ok(home.join(".sablier.yml"))
     }
 
+    /// save writes the config, readable only by its owner.
+    ///
+    /// The file holds a bearer token that never expires, so it is a
+    /// credential at rest and the mode matters as much as the contents.
+    pub fn save(&self) -> Result<()> {
+        let path = Self::path()?;
+        let contents = serde_yaml::to_string(self).context("cannot serialise the config")?;
+        std::fs::write(&path, contents)
+            .with_context(|| format!("cannot write {}", path.display()))?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+                .with_context(|| format!("cannot restrict {}", path.display()))?;
+        }
+        Ok(())
+    }
+
     pub fn load() -> Result<Self> {
         let path = Self::path()?;
-        let contents = std::fs::read_to_string(&path).with_context(|| {
-            format!(
-                "cannot read {}\n\
-                 Create ~/.sablier.yml with your server_url and token.\n\
-                 Generate a token at your Sablier dashboard (Profile > API Token).",
+        let contents = std::fs::read_to_string(&path).map_err(|_| {
+            anyhow::anyhow!(
+                "cannot read {} — run `sablier login` to sign in",
                 path.display()
             )
         })?;

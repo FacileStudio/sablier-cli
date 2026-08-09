@@ -40,10 +40,7 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
                 .fg(theme::PRIMARY)
                 .add_modifier(Modifier::BOLD),
         )),
-        Line::from(Span::styled(
-            format!(" {}", user_name),
-            theme::dim(),
-        )),
+        Line::from(Span::styled(format!(" {}", user_name), theme::dim())),
         Line::from(""),
     ];
 
@@ -57,7 +54,10 @@ pub fn render(frame: &mut Frame, app: &App, area: Rect) {
         } else {
             theme::dim()
         };
-        lines.push(Line::from(Span::styled(format!("{}{}", prefix, label), style)));
+        lines.push(Line::from(Span::styled(
+            format!("{}{}", prefix, label),
+            style,
+        )));
     }
 
     let paragraph = Paragraph::new(lines);

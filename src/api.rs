@@ -12,7 +12,6 @@ pub struct ApiClient {
     client: Client,
 }
 
-
 #[derive(Deserialize, Clone, Debug)]
 pub struct User {
     #[serde(deserialize_with = "flexible_i64")]
