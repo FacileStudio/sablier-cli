@@ -15,7 +15,6 @@ timers straight from a shell.
 - Prints the running timer with elapsed time as `HH:MM:SS` and its state
 - Lists the projects the token can see
 - Creates a task inline from the task picker, then starts a timer on it
-- Self-updates from the GitHub repository with `sablier upgrade`
 
 ## Stack
 
@@ -32,12 +31,14 @@ timers straight from a shell.
 curl -fsSL https://raw.githubusercontent.com/FacileStudio/sablier-cli/main/install.sh | bash
 ```
 
-Installs to `~/.local/bin`. Pass `--bin-dir <dir>` to change that, `--source` to build from
-source, `--no-skill` to skip AI agent skill registration. Building from source needs `cargo`
-and `git` on `PATH`. The AI agent skill is described in [docs/usage.md](docs/usage.md).
+Installs to `~/.local/bin` via [facile](https://github.com/FacileStudio/facile), the suite
+installer. Pass `--bin-dir <dir>` to change that, `--source` to build from source, `--no-skill`
+to skip AI agent skill registration.
+
+Already have `facile`:
 
 ```sh
-cargo install --git https://github.com/FacileStudio/sablier-cli.git --force
+facile install sablier
 ```
 
 ## Usage
@@ -52,7 +53,6 @@ sablier stop       # ✓ Stopped — total 00:42:31
 sablier pause
 sablier resume
 sablier projects   # list projects
-sablier upgrade    # reinstall from GitHub
 ```
 
 Full command reference, flags and TUI keybindings: [docs/usage.md](docs/usage.md).
