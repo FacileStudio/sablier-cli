@@ -13,7 +13,7 @@ sablier [COMMAND]
 print clap's generated help. There is no `--version` flag, no global flags, and no
 `--config` override.
 
-Every command except `upgrade` requires `~/.sablier.yml` with a non-empty `token` — see
+Every command requires `~/.sablier.yml` with a non-empty `token` — see
 [configuration.md](configuration.md).
 
 ## `sablier`
@@ -144,14 +144,15 @@ sablier projects
 
 Prints `No projects.` when the list is empty.
 
-## `sablier upgrade`
+## Updating
 
-Reinstall the binary from GitHub. Shells out to
-`cargo install --git https://github.com/FacileStudio/sablier-cli.git --force`, so `cargo`
-must be on `PATH`. This is the only command that does not read the config file.
+`facile update sablier` reinstalls the published binary in place. There is no `sablier
+upgrade`: it shelled out to `cargo install --git`, which writes to `~/.cargo/bin` whatever
+directory the running binary came from, so it left a second copy behind instead of
+replacing the first.
 
 ```sh
-sablier upgrade
+facile update sablier
 ```
 
 ## TUI keybindings
