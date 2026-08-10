@@ -36,13 +36,18 @@ pub async fn run(server: Option<String>) -> Result<()> {
         .context("cannot open a loopback port to receive the login")?;
     let port = listener.local_addr()?.port();
 
-    let url = format!("{api}/auth/oidc?flow=cli&port={port}");
+    // The nonce is what makes the listener able to tell its own callback from
+    // one somebody else sent. Without it any local process that guesses the
+    // port can hand us a code of its choosing and we would exchange it.
+    let state = nonce();
+
+    let url = format!("{api}/auth/oidc?flow=cli&port={port}&cli_state={state}");
     ui::step(&format!("Opening {url}"));
     if open_browser(&url).is_err() {
         ui::hint("Could not open a browser — paste that URL into one.");
     }
 
-    let code = match tokio::time::timeout(WAIT, wait_for_code(listener)).await {
+    let code = match tokio::time::timeout(WAIT, wait_for_code(listener, &state)).await {
         Ok(result) => result?,
         Err(_) => bail!("timed out waiting for the browser, run `sablier login` again"),
     };
@@ -93,7 +98,7 @@ fn resolve_server(server: Option<String>) -> Result<String> {
 /// browser to. It parses the request line rather than pulling in an HTTP
 /// server, because the only request it will ever see is a GET it constructed
 /// the URL for itself.
-async fn wait_for_code(listener: TcpListener) -> Result<String> {
+async fn wait_for_code(listener: TcpListener, expected_state: &str) -> Result<String> {
     loop {
         let (mut stream, _) = listener.accept().await?;
 
@@ -113,6 +118,20 @@ async fn wait_for_code(listener: TcpListener) -> Result<String> {
             continue;
         };
 
+        // A callback carrying a code but the wrong nonce is not noise, it is
+        // somebody else's. Aborting is the point of sending one.
+        if query_value(target, "state").as_deref() != Some(expected_state) {
+            respond(
+                &mut stream,
+                "400 Bad Request",
+                "The callback did not match this login attempt. Run `sablier login` again.",
+            )
+            .await?;
+            bail!(
+                "the sign-in callback did not match this login attempt, run `sablier login` again"
+            );
+        }
+
         respond(
             &mut stream,
             "200 OK",
@@ -121,6 +140,29 @@ async fn wait_for_code(listener: TcpListener) -> Result<String> {
         .await?;
         return Ok(code);
     }
+}
+
+/// A nonce the server echoes back, so the listener can recognise its own
+/// callback. `/dev/urandom` keeps this free of a dependency; the fallback only
+/// ever runs where that file is missing, and a guessable nonce still beats none.
+fn nonce() -> String {
+    use std::io::Read;
+
+    let mut bytes = [0u8; 16];
+    let seeded = std::fs::File::open("/dev/urandom")
+        .and_then(|mut file| file.read_exact(&mut bytes))
+        .is_ok();
+
+    if !seeded {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|elapsed| elapsed.as_nanos())
+            .unwrap_or_default();
+        let mixed = nanos ^ ((std::process::id() as u128) << 96);
+        bytes.copy_from_slice(&mixed.to_le_bytes());
+    }
+
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn query_value(target: &str, key: &str) -> Option<String> {
@@ -271,5 +313,63 @@ mod tests {
         assert_eq!(percent_decode("a-b_c"), "a-b_c");
         assert_eq!(percent_decode("a%2Bb"), "a+b");
         assert_eq!(percent_decode("a+b"), "a b");
+    }
+
+    #[test]
+    fn nonce_is_hex_and_does_not_repeat() {
+        let first = nonce();
+        assert_eq!(first.len(), 32);
+        assert!(first.chars().all(|c| c.is_ascii_hexdigit()));
+        assert_ne!(first, nonce());
+    }
+
+    #[tokio::test]
+    async fn a_callback_with_the_wrong_nonce_is_refused() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        tokio::spawn(async move {
+            let mut stream = tokio::net::TcpStream::connect(("127.0.0.1", port))
+                .await
+                .unwrap();
+            stream
+                .write_all(b"GET /?code=stolen&state=not-ours HTTP/1.1\r\n\r\n")
+                .await
+                .unwrap();
+            let mut sink = Vec::new();
+            let _ = stream.read_to_end(&mut sink).await;
+        });
+
+        assert!(wait_for_code(listener, "ours").await.is_err());
+    }
+
+    #[tokio::test]
+    async fn a_callback_with_the_right_nonce_is_accepted() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        tokio::spawn(async move {
+            let mut stream = tokio::net::TcpStream::connect(("127.0.0.1", port))
+                .await
+                .unwrap();
+            stream
+                .write_all(b"GET /favicon.ico HTTP/1.1\r\n\r\n")
+                .await
+                .unwrap();
+            let mut sink = Vec::new();
+            let _ = stream.read_to_end(&mut sink).await;
+
+            let mut second = tokio::net::TcpStream::connect(("127.0.0.1", port))
+                .await
+                .unwrap();
+            second
+                .write_all(b"GET /?code=real&state=ours HTTP/1.1\r\n\r\n")
+                .await
+                .unwrap();
+            let mut sink = Vec::new();
+            let _ = second.read_to_end(&mut sink).await;
+        });
+
+        assert_eq!(wait_for_code(listener, "ours").await.unwrap(), "real");
     }
 }
