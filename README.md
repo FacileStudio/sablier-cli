@@ -1,6 +1,6 @@
 # sablier-cli
 
-Terminal client for [Sablier](https://github.com/FacileStudio/Sablier), the self-hosted time
+Terminal client for Sablier, the self-hosted time
 tracker. Ships a single `sablier` binary that is both a full-screen TUI and a set of
 scriptable subcommands.
 
