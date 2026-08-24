@@ -1,0 +1,61 @@
+# sablier-cli's coding standard, enforced by filet.
+# https://github.com/FacileStudio/filet
+#
+#   filet check .     the rules
+#   filet roast .     the rules, with commentary
+#   filet test .      the cargo suite
+#
+# filet has no Rust-specific rule family the way it has `go.*`. What runs here
+# is the generic set (`gen.*`) plus the architecture rules, so treat this file
+# as a layout contract with a size budget attached, not as a clippy substitute.
+# `cargo clippy` still owns anything that needs to understand Rust.
+#
+# The limits are the Go family's canonical numbers, kept so one standard covers
+# the suite. They are not picked to make a count go away.
+
+ignore:
+  - .git
+  - target
+  - dist
+  - build
+  - coverage
+
+extensions: [.rs]
+
+limits:
+  fileLines: 300
+  funcsPerFile: 0
+  funcLines: 60
+  funcStatements: 40
+  lineLength: 120
+  params: 5
+  returns: 3
+  nesting: 5
+  complexity: 15
+  structFields: 15
+  interfaceMethods: 5
+
+# main.rs is the clap entry point and api.rs the only thing that talks to the
+# Sablier server. The ratatui app lives under src/tui/: app.rs holds the state,
+# events.rs and handlers.rs turn keys into transitions, and src/tui/ui/ holds
+# one file per pane so the render pass stays readable.
+architecture:
+  requiredDirs: [src, src/tui, src/tui/ui, docs]
+  requiredFiles:
+    "src": [main.rs, api.rs, config.rs, ui.rs, login.rs]
+    "src/tui": [mod.rs, app.rs, events.rs, handlers.rs]
+    "src/tui/ui": [mod.rs, theme.rs]
+    "docs": [README.md, architecture.md, configuration.md, development.md, usage.md]
+
+style:
+  banInlineComments: true
+  banTODO: true
+  requireDocComments: true
+  banGlobalMutable: true
+  banInit: true
+  banTrailingSpace: true
+
+disabled:
+  - gen.line.long
+
+failOn: error
