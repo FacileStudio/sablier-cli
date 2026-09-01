@@ -24,10 +24,11 @@ cargo run -- stop          # stop running timer
 cargo run -- pause         # pause running timer
 cargo run -- resume        # resume paused timer
 cargo run -- projects      # list projects
+cargo run -- keys list     # list API keys
+cargo run -- keys create   # create API key
+cargo run -- keys revoke   # revoke API key
 cargo run -- upgrade       # self-update from GitHub
 ```
-
-There is no test suite, no linter config, and no CI setup in this repo.
 
 ## Installation
 
@@ -46,6 +47,7 @@ src/
   main.rs          CLI entry point, clap definition, subcommand handlers
   config.rs        Loads ~/.sablier.yml (server_url + token)
   api.rs           HTTP client for the Sablier REST API (reqwest, bearer auth)
+  keys.rs          API key management command handlers (list, create, revoke)
   tui/
     mod.rs         TUI entry point, async event loop, background task orchestration
     app.rs         App state struct, screen enum, popup enum
@@ -77,7 +79,7 @@ token: your-api-token
 token at `/api/auth/oidc/exchange`. That flow is porte's, shared with the rest of the suite.
 Generating a token by hand in the dashboard under Profile > API Token still works.
 
-`server_url` must include `/api` — `api::url` appends paths to it verbatim. `login::api_base`
+`server_url` must include `/api`, as `api::url` appends paths to it verbatim. `login::api_base`
 normalises whatever is passed to `--server`, which is why the bare host is accepted there and
 nowhere else.
 
@@ -86,9 +88,9 @@ nowhere else.
 - The TUI uses a flag-based async task pattern: `App` fields like `needs_stop`, `needs_pause`, `needs_start`, etc. are set by keyboard handlers, and the main loop in `tui/mod.rs` spawns tokio tasks when it sees those flags. Results are polled each tick (500ms).
 - The API client handles a quirk where the Go backend serializes some IDs as strings; `flexible_i64` is a custom serde deserializer that accepts both integer and string-encoded IDs.
 - Release profile enables LTO and symbol stripping for a small binary.
-- No tests exist yet. The project has no CI pipeline.
+- Test suite is executed with `cargo test` and style/architecture is verified with `filet check .`.
 
 ## Conventions
 
 - No inline comments in code.
-- Remove dead code (there is currently an `#![allow(dead_code)]` in `api.rs` that should eventually be cleaned up).
+- Remove dead code.

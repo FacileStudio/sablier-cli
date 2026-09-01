@@ -15,6 +15,7 @@ timers straight from a shell.
 - Prints the running timer with elapsed time as `HH:MM:SS` and its state
 - Lists the projects the token can see
 - Creates a task inline from the task picker, then starts a timer on it
+- Manages API keys (list, create secret/public keys, revoke)
 
 ## Stack
 
@@ -53,6 +54,7 @@ sablier stop       # ✓ Stopped — total 00:42:31
 sablier pause
 sablier resume
 sablier projects   # list projects
+sablier keys list  # list API keys
 ```
 
 Full command reference, flags and TUI keybindings: [docs/usage.md](docs/usage.md).
@@ -84,6 +86,7 @@ src/
   main.rs      clap command tree and the non-interactive subcommand handlers
   config.rs    ~/.sablier.yml loader
   api.rs       Sablier REST client, response models, elapsed-time math
+  keys.rs      API key management commands (list, create, revoke)
   tui/         event loop, app state, key handlers, ratatui screens
 integrations/  SKILL.md, registered with Claude Code and Codex by install.sh
 install.sh     one-liner installer

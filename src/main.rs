@@ -1,5 +1,6 @@
 mod api;
 mod config;
+mod keys;
 mod login;
 mod tui;
 mod ui;
@@ -17,6 +18,9 @@ use clap::{Parser, Subcommand};
 struct Cli {
     #[arg(long, global = true, help = "Disable colored output")]
     no_color: bool,
+
+    #[arg(long, global = true, help = "Output in JSON format")]
+    json: bool,
 
     #[command(subcommand)]
     command: Option<Command>,
@@ -48,6 +52,11 @@ enum Command {
     Resume,
     #[command(about = "List projects")]
     Projects,
+    #[command(about = "Manage API keys")]
+    Keys {
+        #[command(subcommand)]
+        command: keys::KeysCommand,
+    },
 }
 
 #[tokio::main]
@@ -59,7 +68,7 @@ async fn main() {
 
     let result = match cli.command {
         None => tui::run().await,
-        Some(cmd) => run_command(cmd).await,
+        Some(cmd) => run_command(cmd, cli.json).await,
     };
 
     if let Err(e) = result {
@@ -68,7 +77,7 @@ async fn main() {
     }
 }
 
-async fn run_command(cmd: Command) -> Result<()> {
+async fn run_command(cmd: Command, json: bool) -> Result<()> {
     match cmd {
         Command::Login { server } => login::run(server).await,
         Command::Logout => cmd_logout(),
@@ -81,14 +90,21 @@ async fn run_command(cmd: Command) -> Result<()> {
         Command::Pause => cmd_pause().await,
         Command::Resume => cmd_resume().await,
         Command::Projects => cmd_projects().await,
+        Command::Keys { command } => cmd_keys(command, json).await,
     }
+}
+
+async fn cmd_keys(cmd: keys::KeysCommand, json: bool) -> Result<()> {
+    let cfg = load_authed_config()?;
+    let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
+    keys::run(cmd, &client, json).await
 }
 
 fn load_authed_config() -> Result<config::Config> {
     let cfg = config::Config::load()?;
     if cfg.token.is_empty() {
         bail!(
-            "no API token configured — generate one at your Sablier dashboard\n  \
+            "no API token configured, generate one at your Sablier dashboard\n  \
              (Profile > API Token), then add it to ~/.sablier.yml:\n\n  \
              server_url: https://your-instance.example.com\n  \
              token: your-token-here"
@@ -162,7 +178,7 @@ async fn cmd_start(project_id: Option<i64>, task_id: Option<i64>) -> Result<()> 
         .find(|p| p.id == entry.project_id)
         .map(|p| p.name.as_str())
         .unwrap_or("?");
-    ui::success(&format!("Timer started — {}", project_name));
+    ui::success(&format!("Timer started: {}", project_name));
     Ok(())
 }
 
@@ -180,7 +196,7 @@ async fn cmd_status() -> Result<()> {
                 .find(|p| p.id == entry.project_id)
                 .map(|p| p.name.as_str())
                 .unwrap_or("?");
-            println!("{} {} — {}", elapsed, status, project_name);
+            println!("{} {} [{}]", elapsed, status, project_name);
         }
         None => ui::step("No timer running"),
     }
@@ -191,7 +207,7 @@ async fn cmd_stop() -> Result<()> {
     let cfg = load_authed_config()?;
     let client = api::ApiClient::new(&cfg.server_url, &cfg.token);
     let entry = client.stop().await?;
-    ui::success(&format!("Stopped — total {}", entry.elapsed_display()));
+    ui::success(&format!("Stopped, total {}", entry.elapsed_display()));
     Ok(())
 }
 
@@ -225,7 +241,7 @@ async fn cmd_projects() -> Result<()> {
         if p.description.is_empty() {
             println!("  {}", p.name);
         } else {
-            println!("  {}  — {}", p.name, p.description);
+            println!("  {}  ({})", p.name, p.description);
         }
     }
     Ok(())

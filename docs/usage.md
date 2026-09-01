@@ -144,6 +144,54 @@ sablier projects
 
 Prints `No projects.` when the list is empty.
 
+## API keys
+
+### `sablier keys create`
+
+| Flag | What it does |
+|---|---|
+| `-a`, `--app <NAME>` | Application name. Required |
+| `--public` | Create a public browser key instead of a secret key |
+| `--origins <URLS>` | Comma-separated allowed origins (for public keys) |
+| `--quota <N>` | Daily event quota limit (for public keys) |
+
+```sh
+sablier keys create --app myapp
+sablier keys create --app myapp --public --origins https://example.com --quota 1000
+```
+
+Prints the created key metadata and the raw token value. In `--json` mode, returns the full JSON response.
+
+### `sablier keys list`
+
+| Flag | What it does |
+|---|---|
+| `-a`, `--app <NAME>` | Filter keys by application name |
+
+```sh
+sablier keys list
+sablier keys list --app myapp
+```
+
+Prints `#<id>  <app>  <kind>  <prefix>  <status>  <quota>  <created>`, or `no API keys found`.
+
+### `sablier keys revoke`
+
+| Flag | What it does |
+|---|---|
+| `-y`, `--yes` | Confirm revocation without prompting |
+
+```sh
+sablier keys revoke 42
+sablier keys revoke 42 --yes
+```
+
+Revokes an API key by ID. Prints `revoked key 42`.
+
+## Machine-readable output
+
+`--json` is accepted globally and honored by `keys` subcommands (`list`, `create`, `revoke`). It prints compact JSON on stdout.
+
 ## Updating
 
 `facile update sablier` reinstalls the published binary in place. There is no `sablier

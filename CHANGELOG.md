@@ -10,6 +10,16 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-01
+
+### Added
+
+- `sablier keys {list,create,revoke}` command group for managing API keys.
+- `sablier keys list` supports filtering keys by application name with `--app`.
+- `sablier keys create` creates secret or public API keys with optional `--origins` and `--quota` flags.
+- `sablier keys revoke` revokes API keys by id.
+- Full `--json` support for all `sablier keys` commands.
+
 ## [0.1.1] — 2026-08-10
 
 ### Fixed
@@ -53,6 +63,7 @@ record what shipped rather than what was written down at the time.
   task `status` field.
 - The `gg` vim keybind, task creation deserialization and the timer color.
 
-[Unreleased]: https://github.com/FacileStudio/sablier-cli/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/sablier-cli/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/FacileStudio/sablier-cli/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/FacileStudio/sablier-cli/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/FacileStudio/sablier-cli/releases/tag/v0.1.0

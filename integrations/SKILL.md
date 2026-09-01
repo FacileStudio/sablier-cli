@@ -2,7 +2,7 @@
 name: sablier
 description: >
   Facile time tracking CLI. Use when the user asks to track time,
-  start/stop timers, or view time entries.
+  start/stop timers, view time entries, or manage API keys.
 ---
 
 # sablier — Facile time tracking
@@ -12,8 +12,8 @@ Config: `~/.sablier.yml`
 
 ## When to apply
 
-Use when the user mentions time tracking, timers, time entries, or Sablier.
-Triggers: "track time", "start timer", "stop timer", "pause timer", "time tracking", "timesheet", "sablier"
+Use when the user mentions time tracking, timers, time entries, API keys, or Sablier.
+Triggers: "track time", "start timer", "stop timer", "pause timer", "time tracking", "timesheet", "sablier", "api key", "sablier keys"
 
 ## Commands
 
@@ -40,6 +40,13 @@ sablier logout                 Forget the stored token, keep the server URL
 sablier projects               List available projects
 ```
 
+### Keys
+```
+sablier keys create --app <name> [--public] [--origins <urls>] [--quota <n>]
+sablier keys list [--app <name>]
+sablier keys revoke <id> [--yes]
+```
+
 ### TUI mode
 ```
 sablier                        Launch interactive TUI (no args)
@@ -54,4 +61,5 @@ sablier upgrade
 - Timer states: Running ↔ Paused → Stopped
 - `start` without flags opens interactive fuzzy-search picker
 - Status shows elapsed time as HH:MM:SS
+- All keys commands support `--json` for machine-readable output
 - Run `sablier -h` for exact syntax when unsure
