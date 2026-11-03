@@ -10,6 +10,12 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-03
+
+### Fixed
+
+- `Cargo.lock` carries the 0.4.1 version, so the locked release build runs. The v0.4.0 tag never produced a release.
+
 ## [0.4.0] - 2026-11-03
 
 ### Changed
