@@ -10,6 +10,14 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-03
+
+### Changed
+
+- `sablier login` signs in with the OAuth device grant. It prints an approval link to open in any browser and needs no port on this machine, so it works over SSH. Nothing to type or paste.
+- The old loopback redirect is behind `sablier login --listener`. A server without `/api/auth/oidc/device/exchange` falls back to it on its own.
+- A 401 from the exchange says to sign in once at the web app in a browser, since the exchange never creates an account.
+
 ## [0.4.2] - 2026-11-03
 
 ### Fixed
