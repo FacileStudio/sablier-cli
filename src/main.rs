@@ -1,5 +1,6 @@
 mod api;
 mod config;
+mod device;
 mod heartbeat;
 mod hooks;
 mod keys;
@@ -15,7 +16,7 @@ use clap::{Parser, Subcommand};
     name = "sablier",
     version,
     about = "Terminal client for Sablier time tracking",
-    long_about = "Terminal client for Sablier time tracking.\n\nRun with no arguments for the full-screen TUI, or with a subcommand to drive\ntimers from a shell.\n\nGenerate your API token at your Sablier dashboard (Profile > API Token), then\nrun `sablier login` to sign in."
+    long_about = "Terminal client for Sablier time tracking.\n\nRun with no arguments for the full-screen TUI, or with a subcommand to drive\ntimers from a shell.\n\nRun `sablier login` to sign in: it prints an approval link to open in any\nbrowser, so it works over SSH too."
 )]
 struct Cli {
     #[arg(long, global = true, help = "Disable colored output")]
@@ -30,7 +31,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    #[command(about = "Sign in through the browser and store the token")]
+    #[command(about = "Sign in by approving a link in any browser and store the token")]
     Login {
         #[arg(
             value_name = "URL",
@@ -39,6 +40,11 @@ enum Command {
         url: Option<String>,
         #[arg(long, help = "Server URL, same as the positional argument")]
         server: Option<String>,
+        #[arg(
+            long,
+            help = "Sign in through a redirect to a port on this machine instead of an approval link"
+        )]
+        listener: bool,
     },
     #[command(about = "Sign out and forget the stored token")]
     Logout,
@@ -93,7 +99,11 @@ async fn main() {
 
 async fn run_command(cmd: Command, json: bool) -> Result<()> {
     match cmd {
-        Command::Login { url, server } => login::run(url.or(server)).await,
+        Command::Login {
+            url,
+            server,
+            listener,
+        } => login::run(url.or(server), listener).await,
         Command::Logout => cmd_logout(),
         Command::Start {
             project_id,

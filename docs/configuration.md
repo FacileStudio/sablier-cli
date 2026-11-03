@@ -28,16 +28,21 @@ then fails the `load_authed_config()` check with a message telling you to genera
 sablier login
 ```
 
-This opens your browser, signs you in through the identity provider, and writes both keys to
-`~/.sablier.yml` with mode `0600`. `sablier login` with no URL uses `https://sablier.facile.studio`; `sablier login <url>` targets another server. The URL may be the bare host or the API root —
+This prints an approval link, waits for you to approve it in any browser, and writes both keys
+to `~/.sablier.yml` with mode `0600`. `sablier login` with no URL uses `https://sablier.facile.studio`; `sablier login <url>` targets another server. The URL may be the bare host or the API root —
 it is normalised to end in `/api`, which is what every later request is appended to. On a
 machine that already has a config, `sablier login` alone re-uses the stored `server_url`.
 
-The CLI never sees the identity provider, never handles a password, and never holds an
-authorization code. It opens a loopback port, sends the browser to
-`/api/auth/oidc?flow=cli&port=N`, and the API redirects back to that port with a one-time code
-valid for sixty seconds and usable once. If no browser can be opened, the URL is printed to
-paste by hand.
+The CLI never handles a password. By default it runs the OAuth device grant against
+`https://sso.facile.studio` with the public client `facile-cli`, then trades Registre's access
+token for a Sablier token at `/api/auth/oidc/device/exchange`. Registre's token is never written
+to disk. Nothing listens on this machine, so the approval link works from any browser, including
+over SSH. The exchange only finds accounts that already signed in to the web app once.
+
+`sablier login --listener` uses the loopback flow instead: it opens a loopback port, sends the
+browser to `/api/auth/oidc?flow=cli&port=N`, and the API redirects back to that port with a
+one-time code valid for sixty seconds and usable once. A server without the device exchange
+(it answers 404) falls back to this flow automatically.
 
 A token can still be generated in the dashboard under **Profile > API Token** and pasted in.
 That is now the fallback rather than the only way.

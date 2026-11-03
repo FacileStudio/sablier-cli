@@ -102,8 +102,9 @@ All paths are appended verbatim to `server_url`, which is why that value must al
 | `POST` | `/time-entries/resume` | `resume`, TUI |
 | `POST` | `/heartbeats` | `heartbeat` |
 
-Every request carries `Authorization: Bearer <token>`. There is no login endpoint and no
-token refresh — the token is long-lived and comes from the dashboard.
+Every request carries `Authorization: Bearer <token>`. There is no token refresh: the token is
+long-lived and comes from `sablier login` (`/auth/oidc/device/exchange`, or `/auth/oidc/exchange`
+with `--listener`) or from the dashboard.
 
 ## Data model
 

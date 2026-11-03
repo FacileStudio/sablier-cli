@@ -5,6 +5,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
 use crate::config::Config;
+use crate::device;
 use crate::ui;
 
 /// How long to wait for the browser to come back before giving up. Long enough
@@ -19,15 +20,13 @@ struct ExchangeResponse {
     token: String,
 }
 
-/// Sign in through the browser and write the token to the config file.
+/// Sign in and write the token to the config file.
 ///
-/// The whole exchange belongs to the server: the CLI never sees the identity
-/// provider, never handles a password, and never holds an authorization code
-/// that is worth anything on its own. It opens a loopback port, sends the
-/// browser to the API with that port attached, and the API — after the provider
-/// has done its part — redirects back to the port with a one-time code that is
-/// valid for sixty seconds and works once.
-pub async fn run(server: Option<String>) -> Result<()> {
+/// The default is the device grant: the CLI prints an approval link, the human
+/// approves it in any browser, and nothing listens on this machine, so it works
+/// over SSH. `listener` opts into the loopback redirect instead, which is also
+/// the automatic fallback for a server that has not mounted the device exchange.
+pub async fn run(server: Option<String>, listener: bool) -> Result<()> {
     let server = resolve_server(server)?;
     let api = api_base(&server);
 
@@ -35,16 +34,36 @@ pub async fn run(server: Option<String>) -> Result<()> {
         bail!("this server has no single sign-on, put a token from Profile > API Token in ~/.sablier.yml");
     }
 
-    // Port zero asks the kernel for a free one, so two shells can log in at
-    // the same time without agreeing on anything.
+    let token = if listener || !device::exchange_mounted(&api).await? {
+        if !listener {
+            ui::warn(
+                "This server has no device sign-in yet, falling back to the browser redirect.",
+            );
+        }
+        loopback(&api).await?
+    } else {
+        device::exchange(&api, &device::access_token(has_display()).await?).await?
+    };
+    let config = Config {
+        server_url: api,
+        token,
+    };
+    config.save()?;
+
+    ui::success(&format!("Signed in to {server}"));
+    Ok(())
+}
+
+/// The loopback flow. The CLI never sees the identity provider: it opens a
+/// port the kernel picks, so two shells can log in at once, sends the browser to
+/// the API with that port and a nonce attached, and the API redirects back with
+/// a one-time code valid for sixty seconds. The nonce is what tells the
+/// listener its own callback from one another local process sent.
+async fn loopback(api: &str) -> Result<String> {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .context("cannot open a loopback port to receive the login")?;
     let port = listener.local_addr()?.port();
-
-    // The nonce is what makes the listener able to tell its own callback from
-    // one somebody else sent. Without it any local process that guesses the
-    // port can hand us a code of its choosing and we would exchange it.
     let state = nonce();
 
     let url = format!("{api}/auth/oidc?flow=cli&port={port}&cli_state={state}");
@@ -59,16 +78,17 @@ pub async fn run(server: Option<String>) -> Result<()> {
         Ok(result) => result?,
         Err(_) => bail!("timed out waiting for the browser, run `sablier login` again"),
     };
+    exchange(api, &code).await
+}
 
-    let token = exchange(&api, &code).await?;
-    let config = Config {
-        server_url: api,
-        token,
-    };
-    config.save()?;
-
-    ui::success(&format!("Signed in to {server}"));
-    Ok(())
+/// Whether opening a browser can work here. Over SSH there is no display, and
+/// `xdg-open` would reach for a text browser that takes over the terminal.
+fn has_display() -> bool {
+    if cfg!(target_os = "linux") {
+        return std::env::var_os("DISPLAY").is_some()
+            || std::env::var_os("WAYLAND_DISPLAY").is_some();
+    }
+    true
 }
 
 /// api_base is the value the rest of the CLI expects in server_url: the API
@@ -293,7 +313,7 @@ async fn exchange(api: &str, code: &str) -> Result<String> {
     Ok(exchanged.token)
 }
 
-fn open_browser(url: &str) -> Result<()> {
+pub fn open_browser(url: &str) -> Result<()> {
     let command = if cfg!(target_os = "macos") {
         "open"
     } else if cfg!(target_os = "windows") {

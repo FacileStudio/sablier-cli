@@ -30,7 +30,7 @@ sablier status                 Show current timer
 
 ### Session
 ```
-sablier login [url]            Sign in through the browser (default https://sablier.facile.studio)
+sablier login [url]            Sign in by approving a link in any browser, works over SSH (default https://sablier.facile.studio)
 sablier logout                 Forget the stored token, keep the server URL
 ```
 

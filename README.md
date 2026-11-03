@@ -47,7 +47,7 @@ facile install sablier
 
 ```sh
 sablier            # TUI
-sablier login      # sign in through the browser, defaults to https://sablier.facile.studio
+sablier login      # approve a link in any browser, works over SSH, defaults to https://sablier.facile.studio
 sablier logout     # forget the token, keep the server URL
 sablier start      # start a timer, interactive project then task picker
 sablier status     # 00:42:17 Running — Facile Suite
@@ -79,8 +79,8 @@ token: your-api-token
 | `token` | Sablier API token, sent as `Authorization: Bearer <token>` |
 
 Run `sablier login` (or `sablier login https://sablier.example.com` for another server) and the file is written for you: the
-browser opens, the identity provider signs you in, and the token lands in `~/.sablier.yml` with
-mode `0600`. A token generated in the dashboard under Profile > API Token still works if you
+CLI prints an approval link, you approve it in any browser (another machine works, so it runs over
+SSH), and the token lands in `~/.sablier.yml` with mode `0600`. A token generated in the dashboard under Profile > API Token still works if you
 prefer to paste one. Full reference: [docs/configuration.md](docs/configuration.md).
 
 ## Structure
@@ -89,6 +89,8 @@ prefer to paste one. Full reference: [docs/configuration.md](docs/configuration.
 src/
   main.rs      clap command tree and the non-interactive subcommand handlers
   config.rs    ~/.sablier.yml loader
+  login.rs     `sablier login`: device grant by default, loopback redirect behind --listener
+  device.rs    RFC 8628 device grant against Registre and the device exchange
   api.rs       Sablier REST client, response models, elapsed-time math
   keys.rs      API key management commands (list, create, revoke)
   heartbeat/   `sablier heartbeat`: project detection, rate-limit state, Claude payload parsing

@@ -29,20 +29,36 @@ Fails before touching the terminal if the config file is missing or the token is
 
 ## `sablier login`
 
-Sign in through the browser and write the token to `~/.sablier.yml`.
+Sign in by approving a link in any browser and write the token to `~/.sablier.yml`.
 
 | Argument or flag | Type | Default | What it does |
 |---|---|---|---|
 | `[URL]` | `string` | the stored `server_url`, else `https://sablier.facile.studio` | Sablier instance |
 | `--server <SERVER>` | `string` | none | Same as `[URL]` |
+| `--listener` | `bool` | `false` | Use the loopback redirect instead of an approval link |
 
 ```sh
 sablier login
 sablier login https://sablier.example.com
 ```
 
-The CLI opens a loopback port, sends the browser to `/auth/oidc`, and exchanges the one-time
-code the API redirects back with. The file is created mode `0600`.
+```
+▸ Approve this sign-in at https://sso.facile.studio/device?user_code=XTBG-LDJH (code XTBG-LDJH)
+✓ Signed in to https://sablier.facile.studio
+```
+
+The CLI runs the OAuth device grant against Registre, prints the approval link, tries to open
+it in a browser, and waits. Nothing listens on this machine, so the link can be opened on any
+device: login works over SSH. The code is only there to check against the page; nothing is typed.
+The CLI then trades Registre's token for a Sablier token at `/api/auth/oidc/device/exchange`.
+The file is created mode `0600`.
+
+The exchange never creates an account. On a 401, sign in once at the Sablier web app in a
+browser, then run `sablier login` again.
+
+`--listener` uses the older flow: a loopback port, the browser sent to `/auth/oidc`, and a
+one-time code exchanged at `/auth/oidc/exchange`. It needs the browser on this machine. A
+server that has not mounted the device exchange (404) falls back to it on its own.
 
 ## `sablier logout`
 

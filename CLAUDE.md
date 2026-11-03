@@ -46,6 +46,8 @@ cargo install --git https://github.com/FacileStudio/sablier-cli.git --force
 src/
   main.rs          CLI entry point, clap definition, subcommand handlers
   config.rs        Loads ~/.sablier.yml (server_url + token)
+  login.rs         `sablier login`: device grant by default, loopback behind --listener
+  device.rs        RFC 8628 device grant against Registre and porte's device exchange
   api.rs           HTTP client for the Sablier REST API (reqwest, bearer auth)
   keys.rs          API key management command handlers (list, create, revoke)
   tui/
@@ -74,9 +76,11 @@ server_url: https://your-instance.example.com
 token: your-api-token
 ```
 
-`sablier login` writes this file: it opens a loopback port, sends the browser to
-`/api/auth/oidc?flow=cli&port=N`, and trades the one-time code the API redirects back with for a
-token at `/api/auth/oidc/exchange`. That flow is porte's, shared with the rest of the suite.
+`sablier login` writes this file. By default it runs the RFC 8628 device grant against Registre
+(`src/device.rs`, client `facile-cli`) and trades the access token for a Sablier token at
+`/api/auth/oidc/device/exchange`, so it works over SSH. `--listener`, or a 404 from that route,
+uses the loopback flow instead: a port on 127.0.0.1, the browser sent to
+`/api/auth/oidc?flow=cli&port=N`, and the one-time code traded at `/api/auth/oidc/exchange`.
 Generating a token by hand in the dashboard under Profile > API Token still works.
 
 `server_url` must include `/api`, as `api::url` appends paths to it verbatim. `login::api_base`
