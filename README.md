@@ -47,7 +47,7 @@ facile install sablier
 
 ```sh
 sablier            # TUI
-sablier login      # sign in through the browser
+sablier login      # sign in through the browser, defaults to https://sablier.facile.studio
 sablier logout     # forget the token, keep the server URL
 sablier start      # start a timer, interactive project then task picker
 sablier status     # 00:42:17 Running — Facile Suite
@@ -78,7 +78,7 @@ token: your-api-token
 | `server_url` | Base URL prefixed to every request. Must include the `/api` path |
 | `token` | Sablier API token, sent as `Authorization: Bearer <token>` |
 
-Run `sablier login --server https://sablier.example.com` and the file is written for you: the
+Run `sablier login` (or `sablier login https://sablier.example.com` for another server) and the file is written for you: the
 browser opens, the identity provider signs you in, and the token lands in `~/.sablier.yml` with
 mode `0600`. A token generated in the dashboard under Profile > API Token still works if you
 prefer to paste one. Full reference: [docs/configuration.md](docs/configuration.md).

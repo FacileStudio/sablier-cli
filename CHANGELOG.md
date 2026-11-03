@@ -10,6 +10,14 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-03
+
+### Changed
+
+- `sablier login` with no URL signs in to `https://sablier.facile.studio` instead of failing. The server can also be passed as `sablier login <url>`; `--server` still works.
+- The login checks that the server offers single sign-on before opening the browser, prints one line while waiting and one on success, and shows the URL only when no browser opens.
+- The page the browser lands on after sign-in matches the suite sign-in page, without a card border.
+
 ## [0.3.1] - 2026-11-03
 
 ### Fixed

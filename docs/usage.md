@@ -31,12 +31,14 @@ Fails before touching the terminal if the config file is missing or the token is
 
 Sign in through the browser and write the token to `~/.sablier.yml`.
 
-| Flag | Type | Default | What it does |
+| Argument or flag | Type | Default | What it does |
 |---|---|---|---|
-| `--server <SERVER>` | `string` | the stored `server_url` | Sablier instance, e.g. `https://sablier.facile.studio` |
+| `[URL]` | `string` | the stored `server_url`, else `https://sablier.facile.studio` | Sablier instance |
+| `--server <SERVER>` | `string` | none | Same as `[URL]` |
 
 ```sh
-sablier login --server https://sablier.facile.studio
+sablier login
+sablier login https://sablier.example.com
 ```
 
 The CLI opens a loopback port, sends the browser to `/auth/oidc`, and exchanges the one-time

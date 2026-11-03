@@ -32,7 +32,12 @@ struct Cli {
 enum Command {
     #[command(about = "Sign in through the browser and store the token")]
     Login {
-        #[arg(long, help = "Server URL, e.g. https://sablier.facile.studio")]
+        #[arg(
+            value_name = "URL",
+            help = "Server URL (default https://sablier.facile.studio)"
+        )]
+        url: Option<String>,
+        #[arg(long, help = "Server URL, same as the positional argument")]
         server: Option<String>,
     },
     #[command(about = "Sign out and forget the stored token")]
@@ -88,7 +93,7 @@ async fn main() {
 
 async fn run_command(cmd: Command, json: bool) -> Result<()> {
     match cmd {
-        Command::Login { server } => login::run(server).await,
+        Command::Login { url, server } => login::run(url.or(server)).await,
         Command::Logout => cmd_logout(),
         Command::Start {
             project_id,

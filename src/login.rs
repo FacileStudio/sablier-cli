@@ -12,6 +12,8 @@ use crate::ui;
 /// tab does not leave a listener open forever.
 const WAIT: Duration = Duration::from_secs(180);
 
+pub const DEFAULT_SERVER: &str = "https://sablier.facile.studio";
+
 #[derive(Deserialize)]
 struct ExchangeResponse {
     token: String,
@@ -29,6 +31,10 @@ pub async fn run(server: Option<String>) -> Result<()> {
     let server = resolve_server(server)?;
     let api = api_base(&server);
 
+    if !sso_enabled(&api).await? {
+        bail!("this server has no single sign-on, put a token from Profile > API Token in ~/.sablier.yml");
+    }
+
     // Port zero asks the kernel for a free one, so two shells can log in at
     // the same time without agreeing on anything.
     let listener = TcpListener::bind("127.0.0.1:0")
@@ -42,9 +48,11 @@ pub async fn run(server: Option<String>) -> Result<()> {
     let state = nonce();
 
     let url = format!("{api}/auth/oidc?flow=cli&port={port}&cli_state={state}");
-    ui::step(&format!("Opening {url}"));
+    ui::step("Opening your browser to sign in...");
     if open_browser(&url).is_err() {
-        ui::hint("Could not open a browser — paste that URL into one.");
+        ui::hint(&format!(
+            "Could not open a browser, open this URL in one: {url}"
+        ));
     }
 
     let code = match tokio::time::timeout(WAIT, wait_for_code(listener, &state)).await {
@@ -59,10 +67,7 @@ pub async fn run(server: Option<String>) -> Result<()> {
     };
     config.save()?;
 
-    ui::success(&format!(
-        "Signed in. Token saved to {}",
-        Config::path()?.display()
-    ));
+    ui::success(&format!("Signed in to {server}"));
     Ok(())
 }
 
@@ -73,7 +78,7 @@ pub async fn run(server: Option<String>) -> Result<()> {
 /// bare format! — so a `server_url` of `https://sablier.example.com` silently
 /// produces `https://sablier.example.com/time-entries` and 404s. Accepting the
 /// bare host on the command line and normalising here is what makes
-/// `--server https://sablier.example.com` do the obvious thing.
+/// `sablier login https://sablier.example.com` do the obvious thing.
 fn api_base(server: &str) -> String {
     let trimmed = server.trim_end_matches('/');
     if trimmed.ends_with("/api") {
@@ -91,7 +96,26 @@ fn resolve_server(server: Option<String>) -> Result<String> {
             return Ok(existing.server_url);
         }
     }
-    bail!("no server known — run `sablier login --server https://sablier.example.com`")
+    Ok(DEFAULT_SERVER.to_string())
+}
+
+async fn sso_enabled(api: &str) -> Result<bool> {
+    #[derive(Deserialize)]
+    struct Discovery {
+        #[serde(default)]
+        oidc_enabled: bool,
+    }
+    let response = reqwest::Client::new()
+        .get(format!("{api}/auth/config"))
+        .timeout(Duration::from_secs(10))
+        .send()
+        .await
+        .with_context(|| format!("cannot reach {api}"))?;
+    let discovery: Discovery = response
+        .json()
+        .await
+        .context("the server did not answer like a Sablier server")?;
+    Ok(discovery.oidc_enabled)
 }
 
 /// wait_for_code serves exactly one request: the redirect the API sends the
@@ -132,12 +156,7 @@ async fn wait_for_code(listener: TcpListener, expected_state: &str) -> Result<St
             );
         }
 
-        respond(
-            &mut stream,
-            "200 OK",
-            "Signed in. You can close this tab and go back to your terminal.",
-        )
-        .await?;
+        respond(&mut stream, "200 OK", "Sablier has your login.").await?;
         return Ok(code);
     }
 }
@@ -213,10 +232,33 @@ fn percent_decode(value: &str) -> String {
 }
 
 async fn respond(stream: &mut tokio::net::TcpStream, status: &str, message: &str) -> Result<()> {
+    let (heading, hint) = if status.starts_with("200") {
+        (
+            "Signed in",
+            "You can close this tab and go back to your terminal.",
+        )
+    } else {
+        (
+            "Not signed in",
+            "The login started in your terminal is still waiting.",
+        )
+    };
     let body = format!(
-        "<!doctype html><meta charset=\"utf-8\"><title>Sablier</title>\
-         <body style=\"font:16px/1.5 system-ui,sans-serif;margin:4rem auto;max-width:32rem;padding:0 1rem\">\
-         <h1>Sablier</h1><p>{message}</p>"
+        "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\">\
+         <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\
+         <title>{heading} · Sablier</title>\
+         <style>:root{{color-scheme:light dark;--bg:#fafafa;--fg:#18181b;--muted:#71717a;--card:#fff}}\
+         @media (prefers-color-scheme:dark){{:root{{--bg:#09090b;--fg:#fafafa;--muted:#a1a1aa;--card:#18181b}}}}\
+         body{{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1.5rem;\
+         background:var(--bg);color:var(--fg);font:16px/1.6 ui-sans-serif,system-ui,sans-serif}}\
+         main{{width:100%;max-width:26rem;text-align:center}}\
+         .brand{{font-size:1.125rem;font-weight:650;margin-bottom:2rem}}\
+         .card{{background:var(--card);border-radius:.75rem;padding:1.75rem}}\
+         h1{{margin:0;font-size:1.25rem}}p{{margin:.5rem 0 0;font-size:.875rem;color:var(--muted)}}\
+         .hint{{margin-top:1.5rem;font-size:.8125rem;color:var(--muted)}}</style>\
+         <main><div class=\"brand\">Sablier</div>\
+         <div class=\"card\"><h1>{heading}</h1><p>{message}</p></div>\
+         <p class=\"hint\">{hint}</p></main>"
     );
     let response = format!(
         "HTTP/1.1 {status}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",

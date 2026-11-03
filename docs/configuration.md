@@ -25,11 +25,11 @@ then fails the `load_authed_config()` check with a message telling you to genera
 ## Getting a token
 
 ```
-sablier login --server https://sablier.facile.studio
+sablier login
 ```
 
 This opens your browser, signs you in through the identity provider, and writes both keys to
-`~/.sablier.yml` with mode `0600`. The `--server` value may be the bare host or the API root —
+`~/.sablier.yml` with mode `0600`. `sablier login` with no URL uses `https://sablier.facile.studio`; `sablier login <url>` targets another server. The URL may be the bare host or the API root —
 it is normalised to end in `/api`, which is what every later request is appended to. On a
 machine that already has a config, `sablier login` alone re-uses the stored `server_url`.
 
