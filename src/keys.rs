@@ -66,8 +66,8 @@ async fn list(client: &ApiClient, args: KeysListArgs, json: bool) -> Result<()> 
         return Ok(());
     }
     println!(
-        "{:<6} {:<16} {:<8} {:<12} {:<8} {:<24} {}",
-        "ID", "APP", "KIND", "PREFIX", "STATUS", "QUOTA", "CREATED"
+        "{:<6} {:<16} {:<8} {:<12} {:<8} {:<24} CREATED",
+        "ID", "APP", "KIND", "PREFIX", "STATUS", "QUOTA"
     );
     for k in &keys {
         print_key_row(k);

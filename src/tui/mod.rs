@@ -18,6 +18,8 @@ use crate::api::{ApiClient, Project, Task, TimeEntry, User};
 use crate::config::Config;
 
 use self::app::{App, Popup};
+
+type Pending<T> = Option<JoinHandle<Result<T>>>;
 use self::events::{AppEvent, EventHandler};
 
 enum ActionResult {
@@ -60,10 +62,9 @@ async fn run_loop(
     let mut app = App::new(config);
     let events = EventHandler::new(Duration::from_millis(500));
 
-    let mut initial_task: Option<JoinHandle<Result<(User, Option<TimeEntry>, Vec<Project>)>>> =
-        None;
+    let mut initial_task: Pending<(User, Option<TimeEntry>, Vec<Project>)> = None;
     let mut action_task: Option<JoinHandle<Result<ActionResult>>> = None;
-    let mut tasks_load: Option<JoinHandle<Result<(Project, Vec<Task>)>>> = None;
+    let mut tasks_load: Pending<(Project, Vec<Task>)> = None;
     let mut entries_task: Option<JoinHandle<Result<Vec<TimeEntry>>>> = None;
     let mut create_task_handle: Option<JoinHandle<Result<(Project, Task)>>> = None;
 
@@ -254,7 +255,7 @@ async fn run_loop(
                 let handle = create_task_handle.take().unwrap();
                 match handle.await? {
                     Ok((project, task)) => {
-                        app.cache_tasks(&[task.clone()]);
+                        app.cache_tasks(std::slice::from_ref(&task));
                         app.needs_start = Some((project.id, task.id));
                         app.set_status(format!(
                             "Created task \"{}\" — starting timer...",
