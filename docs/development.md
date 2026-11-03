@@ -73,6 +73,8 @@ and the obvious first candidates.
 | `src/main.rs` | The clap command tree and one `cmd_*` handler per subcommand |
 | `src/config.rs` | `Config::path()` and `Config::load()` for `~/.sablier.yml` |
 | `src/api.rs` | `ApiClient`, response structs, `flexible_i64`, elapsed-time math |
+| `src/heartbeat/` | `sablier heartbeat`: project detection, rate-limit state, Claude payload |
+| `src/hooks/` | `sablier hooks`: Claude Code `settings.json` merge and unmerge, git snippet |
 | `src/tui/mod.rs` | Terminal setup and the render / event / spawn / collect loop |
 | `src/tui/app.rs` | `App` state, `Screen`, `Popup`, the `needs_*` flags |
 | `src/tui/events.rs` | Crossterm polling at the tick rate |

@@ -1,5 +1,7 @@
 mod api;
 mod config;
+mod heartbeat;
+mod hooks;
 mod keys;
 mod login;
 mod tui;
@@ -57,6 +59,13 @@ enum Command {
         #[command(subcommand)]
         command: keys::KeysCommand,
     },
+    #[command(about = "Report activity to Sablier; never fails, for use in hooks")]
+    Heartbeat(heartbeat::HeartbeatArgs),
+    #[command(about = "Install or print the hooks that send heartbeats")]
+    Hooks {
+        #[command(subcommand)]
+        command: hooks::HooksCommand,
+    },
 }
 
 #[tokio::main]
@@ -91,6 +100,11 @@ async fn run_command(cmd: Command, json: bool) -> Result<()> {
         Command::Resume => cmd_resume().await,
         Command::Projects => cmd_projects().await,
         Command::Keys { command } => cmd_keys(command, json).await,
+        Command::Heartbeat(args) => {
+            heartbeat::run(args).await;
+            Ok(())
+        }
+        Command::Hooks { command } => hooks::run(command),
     }
 }
 

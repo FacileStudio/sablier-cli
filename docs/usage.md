@@ -188,6 +188,65 @@ sablier keys revoke 42 --yes
 
 Revokes an API key by ID. Prints `revoked key 42`.
 
+## Heartbeats
+
+### `sablier heartbeat`
+
+Report one unit of activity to `POST /heartbeats`. Sablier merges heartbeats into draft time
+entries. Built to run from hooks: it never fails. Any error (no config, server down, bad
+input) prints one line to stderr and exits `0`, and the request times out after 3 seconds.
+
+| Flag | Default | What it does |
+|---|---|---|
+| `--source <S>` | required | Who reports: `claude-code`, `editor`, `git`, `cli`, ... |
+| `--entity <PATH>` | current directory | File or app being worked on. A relative path that exists is made absolute |
+| `--project <NAME>` | git root basename | Project name hint. Falls back to the directory name outside a repository |
+| `--write` | off | The activity changed something. Bypasses the rate limit |
+| `--stdin-claude` | off | Read a Claude Code hook payload on stdin |
+
+```sh
+sablier heartbeat --source cli
+sablier heartbeat --source editor --entity src/main.rs --write
+```
+
+Rate limit: a heartbeat for the same `(source, entity)` pair is skipped when the last one
+sent is under 2 minutes old, unless `--write` is set or the Claude payload is a
+`UserPromptSubmit`. The last-sent times live in
+`$XDG_STATE_HOME/sablier/heartbeats.json` (`~/.local/state/sablier/heartbeats.json` when the
+variable is unset). Pairs older than a day are dropped from it.
+
+With `--stdin-claude`, the payload fields `cwd`, `tool_input.file_path` (or
+`tool_input.notebook_path`) and `hook_event_name` fill the entity and project. `--entity` and
+`--project` still win. Malformed input is ignored.
+
+### `sablier hooks install claude`
+
+Merge two hooks into `~/.claude/settings.json`:
+
+| Event | Matcher | Command |
+|---|---|---|
+| `UserPromptSubmit` | | `sablier heartbeat --source claude-code --stdin-claude` |
+| `PostToolUse` | `Edit\|Write\|MultiEdit\|NotebookEdit` | `sablier heartbeat --source claude-code --stdin-claude --write` |
+
+Every other key and hook is kept, in order. Rerunning adds nothing. An older variant of these
+commands is replaced. The previous file is copied to `settings.json.bak` before each write. A
+file that is not valid JSON is left untouched and the command fails.
+
+### `sablier hooks uninstall claude`
+
+Remove only the hooks above, plus any group or event list they leave empty. Backs up first.
+
+### `sablier hooks print git`
+
+Print a `post-commit` hook that sends a `git` heartbeat with `--write` in the background:
+
+```sh
+sablier hooks print git >> .git/hooks/post-commit
+chmod +x .git/hooks/post-commit
+```
+
+The CLI never edits git config or `core.hooksPath`.
+
 ## Machine-readable output
 
 `--json` is accepted globally and honored by `keys` subcommands (`list`, `create`, `revoke`). It prints compact JSON on stdout.

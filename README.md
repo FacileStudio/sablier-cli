@@ -16,6 +16,7 @@ timers straight from a shell.
 - Lists the projects the token can see
 - Creates a task inline from the task picker, then starts a timer on it
 - Manages API keys (list, create secret/public keys, revoke)
+- Sends activity heartbeats from Claude Code and git hooks, which Sablier turns into draft entries
 
 ## Stack
 
@@ -55,14 +56,17 @@ sablier pause
 sablier resume
 sablier projects   # list projects
 sablier keys list  # list API keys
+sablier heartbeat --source cli --write   # report activity in the current repo
+sablier hooks install claude             # heartbeat from every Claude Code session
+sablier hooks print git >> .git/hooks/post-commit
 ```
 
 Full command reference, flags and TUI keybindings: [docs/usage.md](docs/usage.md).
 
 ## Configuration
 
-All configuration lives in `~/.sablier.yml`. The CLI reads no environment variables and
-takes no global flags.
+All configuration lives in `~/.sablier.yml`. The only environment variable read is
+`XDG_STATE_HOME`, for the heartbeat rate-limit file.
 
 ```yaml
 server_url: https://sablier.facile.studio/api
@@ -87,6 +91,8 @@ src/
   config.rs    ~/.sablier.yml loader
   api.rs       Sablier REST client, response models, elapsed-time math
   keys.rs      API key management commands (list, create, revoke)
+  heartbeat/   `sablier heartbeat`: project detection, rate-limit state, Claude payload parsing
+  hooks/       `sablier hooks`: Claude Code settings.json merge, git snippet
   tui/         event loop, app state, key handlers, ratatui screens
 integrations/  SKILL.md, registered with Claude Code and Codex by install.sh
 install.sh     one-liner installer

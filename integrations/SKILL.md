@@ -13,7 +13,7 @@ Config: `~/.sablier.yml`
 ## When to apply
 
 Use when the user mentions time tracking, timers, time entries, API keys, or Sablier.
-Triggers: "track time", "start timer", "stop timer", "pause timer", "time tracking", "timesheet", "sablier", "api key", "sablier keys"
+Triggers: "track time", "heartbeat", "claude code hooks", "start timer", "stop timer", "pause timer", "time tracking", "timesheet", "sablier", "api key", "sablier keys"
 
 ## Commands
 
@@ -47,6 +47,14 @@ sablier keys list [--app <name>]
 sablier keys revoke <id> [--yes]
 ```
 
+### Heartbeats and hooks
+```
+sablier heartbeat --source <s> [--entity <path>] [--project <name>] [--write] [--stdin-claude]
+sablier hooks install claude      Heartbeat from Claude Code prompts and edits
+sablier hooks uninstall claude    Remove only those hooks
+sablier hooks print git           Print a post-commit hook snippet
+```
+
 ### TUI mode
 ```
 sablier                        Launch interactive TUI (no args)
@@ -62,4 +70,5 @@ sablier upgrade
 - `start` without flags opens interactive fuzzy-search picker
 - Status shows elapsed time as HH:MM:SS
 - All keys commands support `--json` for machine-readable output
+- `heartbeat` always exits 0; errors go to stderr as one line
 - Run `sablier -h` for exact syntax when unsure

@@ -100,6 +100,7 @@ All paths are appended verbatim to `server_url`, which is why that value must al
 | `POST` | `/time-entries/stop` | `stop`, TUI |
 | `POST` | `/time-entries/pause` | `pause`, TUI |
 | `POST` | `/time-entries/resume` | `resume`, TUI |
+| `POST` | `/heartbeats` | `heartbeat` |
 
 Every request carries `Authorization: Bearer <token>`. There is no login endpoint and no
 token refresh — the token is long-lived and comes from the dashboard.

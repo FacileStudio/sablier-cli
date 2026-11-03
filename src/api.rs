@@ -173,10 +173,30 @@ where
     deserializer.deserialize_any(Visitor)
 }
 
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct Heartbeat {
+    pub at: String,
+    pub source: String,
+    pub entity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project: Option<String>,
+    pub write: bool,
+}
+
+#[derive(Serialize)]
+struct HeartbeatsPayload<'a> {
+    heartbeats: &'a [Heartbeat],
+}
+
 impl ApiClient {
     pub fn new(base_url: &str, token: &str) -> Self {
+        Self::with_timeout(base_url, token, Duration::from_secs(15))
+    }
+
+    /// Builds a client whose every request gives up after `timeout`.
+    pub fn with_timeout(base_url: &str, token: &str, timeout: Duration) -> Self {
         let client = Client::builder()
-            .timeout(Duration::from_secs(15))
+            .timeout(timeout)
             .build()
             .unwrap_or_default();
         Self {
@@ -353,6 +373,19 @@ impl ApiClient {
         Ok(data)
     }
 
+    /// Posts a batch of heartbeats to `/heartbeats`, which answers 202.
+    pub async fn heartbeats(&self, heartbeats: &[Heartbeat]) -> Result<()> {
+        let resp = self
+            .client
+            .post(self.url("/heartbeats"))
+            .bearer_auth(&self.token)
+            .json(&HeartbeatsPayload { heartbeats })
+            .send()
+            .await?;
+        Self::check(resp).await?;
+        Ok(())
+    }
+
     pub async fn revoke_key(&self, id: i64) -> Result<()> {
         let resp = self
             .client
@@ -495,5 +528,51 @@ mod tests {
         let client = ApiClient::new(&format!("http://127.0.0.1:{port}"), "dummy");
         let result = client.revoke_key(42).await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_heartbeats_request_shape() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut req = String::new();
+            let mut buf = [0u8; 4096];
+            while !req.ends_with("}]}") {
+                let n = socket.read(&mut buf).await.unwrap();
+                assert!(n > 0, "connection closed before the body arrived");
+                req.push_str(&String::from_utf8_lossy(&buf[..n]));
+            }
+            let resp = "HTTP/1.1 202 Accepted\r\nContent-Type: application/json\r\nContent-Length: 14\r\n\r\n{\"accepted\":1}";
+            socket.write_all(resp.as_bytes()).await.unwrap();
+            req
+        });
+
+        let client = ApiClient::new(&format!("http://127.0.0.1:{port}"), "tok");
+        let beat = Heartbeat {
+            at: "2026-11-03T10:00:00Z".to_string(),
+            source: "claude-code".to_string(),
+            entity: "/repo/src/main.rs".to_string(),
+            project: Some("repo".to_string()),
+            write: true,
+        };
+        client.heartbeats(&[beat]).await.unwrap();
+
+        let req = server.await.unwrap();
+        assert!(req.starts_with("POST /heartbeats "));
+        assert!(req.contains("authorization: Bearer tok"));
+        let body = req.split("\r\n\r\n").nth(1).unwrap();
+        let got: serde_json::Value = serde_json::from_str(body).unwrap();
+        assert_eq!(
+            got,
+            serde_json::json!({"heartbeats":[{
+                "at": "2026-11-03T10:00:00Z",
+                "source": "claude-code",
+                "entity": "/repo/src/main.rs",
+                "project": "repo",
+                "write": true
+            }]})
+        );
     }
 }

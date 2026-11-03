@@ -1,6 +1,7 @@
 # sablier-cli — Configuration
 
-Everything the CLI reads at runtime: one YAML file, two keys, no environment variables.
+Everything the CLI reads at runtime: one YAML file, two keys, and `XDG_STATE_HOME` for the
+heartbeat state file.
 
 ## The config file
 
@@ -82,8 +83,15 @@ appended, not as a configuration error.
 | `404 Not Found: ...` | `server_url` is missing the `/api` suffix |
 | `error sending request` | The host is unreachable, or the 15-second timeout expired |
 
+## Heartbeat state
+
+`sablier heartbeat` keeps the last-sent time per `(source, entity)` in
+`$XDG_STATE_HOME/sablier/heartbeats.json`. When `XDG_STATE_HOME` is unset or not absolute,
+the path is `~/.local/state/sablier/heartbeats.json`. Deleting the file only resets the
+2-minute rate limit.
+
 ## Request behavior
 
 The HTTP client is built once per command with a 15-second timeout covering the whole
-request. The CLI configures nothing else on it: no retries, no backoff, no custom headers
+request. `sablier heartbeat` uses 3 seconds instead, so a hook never stalls its caller. The CLI configures nothing else on it: no retries, no backoff, no custom headers
 beyond the bearer token, and no proxy settings.
