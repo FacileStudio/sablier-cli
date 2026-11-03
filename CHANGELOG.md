@@ -10,6 +10,18 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-03
+
+### Added
+
+- `sablier heartbeat --source <s> [--entity <path>] [--project <name>] [--write] [--stdin-claude]` posts one heartbeat to `POST /api/heartbeats`. It needs Sablier 1.4.0. It always exits 0, waits at most 3 s, and sends at most one heartbeat per source and entity every 2 minutes unless `--write` is set.
+- `sablier hooks install claude` and `sablier hooks uninstall claude` add or remove Claude Code hooks in `~/.claude/settings.json`, after backing it up.
+- `sablier hooks print git` prints a post-commit hook snippet.
+
+### Changed
+
+- Fixed the clippy 1.98 lints in `keys` and `tui`.
+
 ## [0.2.0] - 2026-09-01
 
 ### Added
