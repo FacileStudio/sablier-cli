@@ -10,6 +10,12 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-03
+
+### Fixed
+
+- The release workflow passes `--repo` to `gh release download`, so the Homebrew formula is published again. It had failed since 0.2.0.
+
 ## [0.3.0] - 2026-11-03
 
 ### Added
