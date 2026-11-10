@@ -109,6 +109,10 @@ install.sh     one-liner installer
 | [Development](docs/development.md) | Building, running against a local Sablier, conventions |
 | [Usage](docs/usage.md) | Every command, flag, keybinding and output shape |
 
+## License
+
+sablier-cli is released under the [MIT License](LICENSE).
+
 ---
 
 Part of the [Facile Suite](https://facile.studio) — self-hosted tools for creative studios
