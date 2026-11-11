@@ -10,9 +10,15 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-11
+
 ### Added
 
 - sablier-cli is released under the [MIT License](LICENSE).
+
+### Fixed
+
+- Dependencies carry the patched quinn-proto, rustls, rustls-webpki, webpki-roots, h2, tokio, rustix, anyhow and lru releases. ratatui moves to 0.30, tui-big-text to 0.8 and crossterm to 0.29.
 
 ## [0.5.0] - 2026-11-03
 
