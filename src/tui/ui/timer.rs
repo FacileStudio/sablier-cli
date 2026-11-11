@@ -104,6 +104,8 @@ fn big_text_height(px: PixelSize) -> u16 {
         PixelSize::Quadrant => 4,
         PixelSize::ThirdHeight => 3,
         PixelSize::Sextant => 3,
+        PixelSize::QuarterHeight => 2,
+        PixelSize::Octant => 2,
     }
 }
 
