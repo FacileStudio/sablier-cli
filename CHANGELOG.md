@@ -10,6 +10,8 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-13
+
 ### Changed
 
 - The token lives in the OS keyring (Keychain, Credential Manager, Secret Service) under `studio.facile.sablier` / `session`, the entry the Sablier desktop app shares. `~/.sablier.yml` keeps `server_url` only.
