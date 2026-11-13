@@ -40,7 +40,10 @@ cargo run -- --help
 ```
 
 `cargo run` and the installed `sablier` binary read the same `~/.sablier.yml`; there is no
-way to point a dev build at a different config file short of editing that one.
+way to point a dev build at a different config file short of editing that one. They also share the
+keyring entry `studio.facile.sablier` / `session` with each other and with the desktop app, so
+signing in from a dev build signs in all of them. A `token:` pasted into the file moves to the
+keyring on the next command.
 
 ## Building a release binary
 
@@ -71,7 +74,8 @@ and the obvious first candidates.
 | Path | What it holds |
 |---|---|
 | `src/main.rs` | The clap command tree and one `cmd_*` handler per subcommand |
-| `src/config.rs` | `Config::path()` and `Config::load()` for `~/.sablier.yml` |
+| `src/config.rs` | `Config::path()` and `Config::load()` for `~/.sablier.yml` and the token |
+| `src/vault.rs` | The OS keyring entry shared with the desktop app |
 | `src/api.rs` | `ApiClient`, response structs, `flexible_i64`, elapsed-time math |
 | `src/heartbeat/` | `sablier heartbeat`: project detection, rate-limit state, Claude payload |
 | `src/hooks/` | `sablier hooks`: Claude Code `settings.json` merge and unmerge, git snippet |

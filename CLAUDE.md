@@ -9,7 +9,7 @@ Terminal client for [Sablier](https://github.com/FacileStudio/sablier) time trac
 - HTTP client: reqwest (JSON feature)
 - TUI framework: ratatui + crossterm, tui-big-text for the timer display
 - CLI argument parsing: clap (derive)
-- Config format: YAML (`~/.sablier.yml`) via serde_yaml
+- Config format: YAML (`~/.sablier.yml`) via serde_yaml; the token in the OS keyring (`keyring` 3)
 - Interactive selection (CLI mode): dialoguer (fuzzy-select)
 
 ## Key commands
@@ -45,7 +45,8 @@ cargo install --git https://github.com/FacileStudio/sablier-cli.git --force
 ```
 src/
   main.rs          CLI entry point, clap definition, subcommand handlers
-  config.rs        Loads ~/.sablier.yml (server_url + token)
+  config.rs        Loads ~/.sablier.yml (server_url) and the token, migrating it to the keyring
+  vault.rs         The OS keyring entry shared with the desktop app (studio.facile.sablier/session)
   login.rs         `sablier login`: device grant by default, loopback behind --listener
   device.rs        RFC 8628 device grant against Registre and porte's device exchange
   api.rs           HTTP client for the Sablier REST API (reqwest, bearer auth)
@@ -72,11 +73,17 @@ install.sh         One-liner installer script
 The CLI reads `~/.sablier.yml`:
 
 ```yaml
-server_url: https://your-instance.example.com
-token: your-api-token
+server_url: https://your-instance.example.com/api
 ```
 
-`sablier login` writes this file. By default it runs the RFC 8628 device grant against Registre
+The token lives in the OS keyring, service `studio.facile.sablier`, account `session`, the
+entry the Sablier desktop app (`Sablier/apps/desktop/src/token.rs`) also uses. Keep both names
+in step with it. A `token:` key in the file moves to the keyring on the next load and leaves
+the file only after a read-back matched. Without a keyring (headless Linux) it stays in the file
+and every load prints a stderr notice. The keyring uses `async-secret-service` (pure Rust zbus),
+not `sync-secret-service`: libdbus would break the `aarch64-unknown-linux-gnu` cross build.
+
+`sablier login` writes the server to this file and the token to the keyring. By default it runs the RFC 8628 device grant against Registre
 (`src/device.rs`, client `facile-cli`) and trades the access token for a Sablier token at
 `/api/auth/oidc/device/exchange`, so it works over SSH. `--listener`, or a 404 from that route,
 uses the loopback flow instead: a port on 127.0.0.1, the browser sent to

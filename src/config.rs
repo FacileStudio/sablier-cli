@@ -1,11 +1,15 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use crate::vault::{self, Keyring, Vault};
+
+mod file;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub server_url: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub token: String,
 }
 
@@ -15,118 +19,87 @@ impl Config {
         Ok(home.join(".sablier.yml"))
     }
 
-    /// save writes the config, readable only by its owner.
+    /// save puts the token in the OS keyring and the server in `~/.sablier.yml`.
     ///
-    /// The file holds a bearer token that never expires, so it is a
-    /// credential at rest and the mode matters as much as the contents.
+    /// Without a usable keyring the token goes into the file too, readable only
+    /// by its owner, and the user is told so.
     pub fn save(&self) -> Result<()> {
-        let path = Self::path()?;
-        let contents = serde_yaml::to_string(self).context("cannot serialise the config")?;
-        write_private(&path, contents.as_bytes())
-            .with_context(|| format!("cannot write {}", path.display()))
+        self.save_to(&Self::path()?, &Keyring)
     }
 
-    /// clear forgets the token but keeps server_url, so signing back in does
-    /// not also mean retyping which Sablier this is.
+    /// clear forgets the token in the keyring and in the file but keeps
+    /// server_url, so signing back in does not also mean retyping which Sablier
+    /// this is.
     ///
     /// Returns `Ok(false)` when there was no token to forget.
     pub fn clear() -> Result<bool> {
-        let mut config = Self::load()?;
+        Self::clear_at(&Self::path()?, &Keyring)
+    }
+
+    /// load reads `~/.sablier.yml` and the token from the keyring.
+    ///
+    /// A token still in the file moves to the keyring, and leaves the file only
+    /// once the keyring has it back. Without a usable keyring it stays put.
+    pub fn load() -> Result<Self> {
+        Self::load_from(&Self::path()?, &Keyring)
+    }
+
+    fn save_to(&self, path: &Path, vault: &dyn Vault) -> Result<()> {
+        let mut on_disk = self.clone();
+        if !self.token.is_empty() {
+            match vault::store(vault, &self.token) {
+                Ok(()) => on_disk.token.clear(),
+                Err(reason) => fallback_notice(path, &reason),
+            }
+        }
+        file::write(&on_disk, path)
+    }
+
+    fn clear_at(path: &Path, vault: &dyn Vault) -> Result<bool> {
+        let in_vault = vault.delete().unwrap_or_else(|reason| {
+            eprintln!("sablier: cannot clear the OS keyring ({reason})");
+            false
+        });
+        let Ok(mut config) = file::read(path) else {
+            return Ok(in_vault);
+        };
         if config.token.is_empty() {
-            return Ok(false);
+            return Ok(in_vault);
         }
         config.token.clear();
-        config.save()?;
+        file::write(&config, path)?;
         Ok(true)
     }
 
-    pub fn load() -> Result<Self> {
-        let path = Self::path()?;
-        let contents = std::fs::read_to_string(&path).map_err(|_| {
-            anyhow::anyhow!(
-                "cannot read {} — run `sablier login` to sign in",
-                path.display()
-            )
-        })?;
-        let _ = ensure_secure_permissions(&path);
-        let config: Self = serde_yaml::from_str(&contents)
-            .with_context(|| format!("invalid config at {}", path.display()))?;
+    fn load_from(path: &Path, vault: &dyn Vault) -> Result<Self> {
+        let mut config = file::read(path)?;
+        if config.token.is_empty() {
+            config.token = vault.get().ok().flatten().unwrap_or_default();
+            return Ok(config);
+        }
+        match vault::store(vault, &config.token) {
+            Ok(()) => {
+                let mut on_disk = config.clone();
+                on_disk.token.clear();
+                if let Err(err) = file::write(&on_disk, path) {
+                    eprintln!(
+                        "sablier: the token is in the OS keyring but is still in the file: {err:#}"
+                    );
+                }
+            }
+            Err(reason) => fallback_notice(path, &reason),
+        }
         Ok(config)
     }
 }
 
-/// Creates or replaces `path` with mode 0600 in one step. Writing first and
-/// chmod-ing after leaves the token world-readable for the instant in between.
-#[cfg(unix)]
-fn write_private(path: &std::path::Path, contents: &[u8]) -> std::io::Result<()> {
-    use std::io::Write;
-    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
-
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .mode(0o600)
-        .open(path)?;
-    file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
-    file.write_all(contents)?;
-    file.sync_all()
-}
-
-#[cfg(not(unix))]
-fn write_private(path: &std::path::Path, contents: &[u8]) -> std::io::Result<()> {
-    std::fs::write(path, contents)
-}
-
-/// Tightens an existing config to 0600 when it grants group or other access,
-/// so a token that leaked before this fix stops leaking on the next read.
-///
-/// Returns `Ok(true)` only when the mode was actually changed.
-#[cfg(unix)]
-fn ensure_secure_permissions(path: &std::path::Path) -> std::io::Result<bool> {
-    use std::os::unix::fs::PermissionsExt;
-
-    if std::fs::metadata(path)?.permissions().mode() & 0o077 == 0 {
-        return Ok(false);
-    }
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
-    Ok(true)
-}
-
-#[cfg(not(unix))]
-fn ensure_secure_permissions(_path: &std::path::Path) -> std::io::Result<bool> {
-    Ok(false)
+/// Tells the user the token stays on disk, and why.
+fn fallback_notice(path: &Path, reason: &str) {
+    eprintln!(
+        "sablier: no usable OS keyring ({reason}); the token stays in {} (mode 0600)",
+        path.display()
+    );
 }
 
 #[cfg(all(test, unix))]
-mod tests {
-    use super::*;
-    use std::os::unix::fs::PermissionsExt;
-
-    #[test]
-    fn the_token_file_is_never_readable_by_anyone_else() {
-        let mut path = std::env::temp_dir();
-        path.push(format!("sablier-cli-{}-config.yml", std::process::id()));
-        let _ = std::fs::remove_file(&path);
-
-        write_private(&path, b"token: secret\n").unwrap();
-
-        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
-        assert_eq!(mode, 0o600, "wrote {mode:o}");
-        std::fs::remove_file(&path).unwrap();
-    }
-
-    #[test]
-    fn an_already_leaked_config_is_tightened_on_read() {
-        let mut path = std::env::temp_dir();
-        path.push(format!("sablier-cli-{}-leaked.yml", std::process::id()));
-        std::fs::write(&path, b"token: secret\n").unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
-
-        assert!(ensure_secure_permissions(&path).unwrap());
-        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
-        assert_eq!(mode, 0o600, "left {mode:o}");
-        assert!(!ensure_secure_permissions(&path).unwrap());
-        std::fs::remove_file(&path).unwrap();
-    }
-}
+mod tests;

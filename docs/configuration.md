@@ -1,7 +1,7 @@
 # sablier-cli — Configuration
 
-Everything the CLI reads at runtime: one YAML file, two keys, and `XDG_STATE_HOME` for the
-heartbeat state file.
+Everything the CLI reads at runtime: one YAML file, the OS keyring for the token, and
+`XDG_STATE_HOME` for the heartbeat state file.
 
 ## The config file
 
@@ -11,16 +11,16 @@ variable anywhere in the source.
 
 ```yaml
 server_url: https://sablier.facile.studio/api
-token: your-api-token
 ```
 
 | Key | Required | Default | What it does |
 |---|---|---|---|
 | `server_url` | yes | — | Base URL every request is appended to. A trailing `/` is trimmed |
-| `token` | no in YAML, yes in practice | `""` | Sent as `Authorization: Bearer <token>` on every request |
+| `token` | only without a keyring | `""` | Sent as `Authorization: Bearer <token>` on every request |
 
-`token` is declared `#[serde(default)]`, so the file parses without it — but every command
-then fails the `load_authed_config()` check with a message telling you to generate one.
+With a usable OS keyring the file holds `server_url` only. Without a token in the keyring or
+the file, every command fails the `load_authed_config()` check with a message telling you to
+sign in.
 
 ## Getting a token
 
@@ -28,8 +28,8 @@ then fails the `load_authed_config()` check with a message telling you to genera
 sablier login
 ```
 
-This prints an approval link, waits for you to approve it in any browser, and writes both keys
-to `~/.sablier.yml` with mode `0600`. `sablier login` with no URL uses `https://sablier.facile.studio`; `sablier login <url>` targets another server. The URL may be the bare host or the API root —
+This prints an approval link, waits for you to approve it in any browser, and stores the token in
+the OS keyring and `server_url` in `~/.sablier.yml` (mode `0600`). `sablier login` with no URL uses `https://sablier.facile.studio`; `sablier login <url>` targets another server. The URL may be the bare host or the API root —
 it is normalised to end in `/api`, which is what every later request is appended to. On a
 machine that already has a config, `sablier login` alone re-uses the stored `server_url`.
 
@@ -44,18 +44,24 @@ browser to `/api/auth/oidc?flow=cli&port=N`, and the API redirects back to that 
 one-time code valid for sixty seconds and usable once. A server without the device exchange
 (it answers 404) falls back to this flow automatically.
 
-A token can still be generated in the dashboard under **Profile > API Token** and pasted in.
-That is now the fallback rather than the only way.
+A token can still be generated in the dashboard under **Profile > API Token** and pasted into
+the file as `token:`. The next command moves it to the keyring.
 
 ## Token storage
 
-The token is stored in plaintext in `~/.sablier.yml`. The CLI does not use the OS keychain,
-does not encrypt the file, and does not chmod it. If that matters on a shared machine,
-restrict it yourself:
+The token lives in the OS keyring under service `studio.facile.sablier`, account `session`:
+Keychain on macOS, Credential Manager on Windows, the Secret Service on Linux. The Sablier
+desktop app reads and writes the same entry, so the CLI, the app and its tray share one
+sign-in.
 
-```sh
-chmod 600 ~/.sablier.yml
-```
+- **Migration.** A `token:` still in `~/.sablier.yml` (from an older CLI, `facile login`, or a
+  hand edit) moves to the keyring on the next command. The CLI reads the entry back, and
+  removes the token from the file only once the keyring returned it.
+- **Fallback.** Without a usable keyring, typically headless Linux with no Secret Service, the
+  token stays in `~/.sablier.yml`, created `0600` and tightened to `0600` on every read. Each
+  command then prints a notice on stderr naming the file.
+- **Logout.** `sablier logout` deletes the keyring entry and the `token:` key, and keeps
+  `server_url`.
 
 ## The `/api` trap
 
@@ -83,7 +89,8 @@ appended, not as a configuration error.
 |---|---|
 | `cannot read /Users/you/.sablier.yml` | The file does not exist |
 | `invalid config at ...` | The YAML is malformed or `server_url` is missing |
-| `No API token configured.` | `token` is absent or empty |
+| `no API token configured` | No token in the keyring or the file |
+| `sablier: no usable OS keyring (...)` | No Secret Service or keychain: the token stays in the file |
 | `401 Unauthorized: ...` | The token is wrong, revoked, or from another instance |
 | `404 Not Found: ...` | `server_url` is missing the `/api` suffix |
 | `error sending request` | The host is unreachable, or the 15-second timeout expired |

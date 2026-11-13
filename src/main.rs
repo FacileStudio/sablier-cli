@@ -7,6 +7,7 @@ mod keys;
 mod login;
 mod tui;
 mod ui;
+mod vault;
 
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
@@ -144,10 +145,7 @@ fn load_authed_config() -> Result<config::Config> {
 
 fn cmd_logout() -> Result<()> {
     if config::Config::clear()? {
-        ui::success(&format!(
-            "Signed out. Token removed from {}",
-            config::Config::path()?.display()
-        ));
+        ui::success("Signed out");
     } else {
         ui::step("Not signed in");
     }

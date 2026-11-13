@@ -25,7 +25,7 @@ timers straight from a shell.
 | CLI | Rust 2021, clap 4 (derive), tokio 1, anyhow 1 |
 | TUI | ratatui 0.29, crossterm 0.28, tui-big-text 0.7, dialoguer 0.11 |
 | Transport | reqwest 0.12 (JSON), bearer token auth, 15s request timeout |
-| Storage | `~/.sablier.yml` via serde_yaml 0.9 |
+| Storage | `~/.sablier.yml` via serde_yaml 0.9, the token in the OS keyring via keyring 3 |
 
 ## Install
 
@@ -65,22 +65,21 @@ Full command reference, flags and TUI keybindings: [docs/usage.md](docs/usage.md
 
 ## Configuration
 
-All configuration lives in `~/.sablier.yml`. The only environment variable read is
+Settings live in `~/.sablier.yml` and the token in the OS keyring. The only environment variable read is
 `XDG_STATE_HOME`, for the heartbeat rate-limit file.
 
 ```yaml
 server_url: https://sablier.facile.studio/api
-token: your-api-token
 ```
 
 | Key | What it does |
 |---|---|
 | `server_url` | Base URL prefixed to every request. Must include the `/api` path |
-| `token` | Sablier API token, sent as `Authorization: Bearer <token>` |
+| `token` | Only without an OS keyring: the Sablier API token, sent as `Authorization: Bearer <token>` |
 
 Run `sablier login` (or `sablier login https://sablier.example.com` for another server) and the file is written for you: the
 CLI prints an approval link, you approve it in any browser (another machine works, so it runs over
-SSH), and the token lands in `~/.sablier.yml` with mode `0600`. A token generated in the dashboard under Profile > API Token still works if you
+SSH), and the token lands in the OS keyring (service `studio.facile.sablier`, shared with the Sablier desktop app). Without a keyring, as on headless Linux, it stays in `~/.sablier.yml` with mode `0600` and the CLI says so. A token generated in the dashboard under Profile > API Token still works if you
 prefer to paste one. Full reference: [docs/configuration.md](docs/configuration.md).
 
 ## Structure

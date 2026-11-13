@@ -7,7 +7,7 @@ and every Sablier endpoint it talks to.
 
 ```
                      ~/.sablier.yml
-                     (server_url + token)
+                     (server_url) + OS keyring (token)
                             │
                             ▼
   Terminal ──▶ sablier binary ──┬──▶ TUI mode      (no subcommand)
@@ -37,8 +37,9 @@ Both paths start by loading `~/.sablier.yml`. Command mode goes through
 
 ## Command-mode lifecycle
 
-1. `config::Config::load()` reads and deserializes `~/.sablier.yml`; a missing file produces
-   an error naming the path and how to create it.
+1. `config::Config::load()` reads and deserializes `~/.sablier.yml`, then takes the token from
+   the OS keyring, moving a `token:` left in the file into it; a missing file produces an error
+   naming the path and how to create it.
 2. `api::ApiClient::new(server_url, token)` trims a trailing `/` from the base URL and builds
    the HTTP client.
 3. One or more requests run. `ApiClient::check` inspects the status: on failure it tries to

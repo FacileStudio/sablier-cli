@@ -10,6 +10,13 @@ record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
 
+### Changed
+
+- The token lives in the OS keyring (Keychain, Credential Manager, Secret Service) under `studio.facile.sablier` / `session`, the entry the Sablier desktop app shares. `~/.sablier.yml` keeps `server_url` only.
+- A token already in `~/.sablier.yml` moves to the keyring on the next command, and leaves the file only after the keyring returned it.
+- Without a usable keyring, such as headless Linux with no Secret Service, the token stays in `~/.sablier.yml` (mode 0600) and each command says so on stderr.
+- `sablier logout` clears the keyring entry and the file's token.
+
 ## [0.5.1] - 2026-11-11
 
 ### Added

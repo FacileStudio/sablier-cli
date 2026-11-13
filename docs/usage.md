@@ -13,7 +13,7 @@ sablier [COMMAND]
 print clap's generated help. There is no `--version` flag, no global flags, and no
 `--config` override.
 
-Every command requires `~/.sablier.yml` with a non-empty `token` — see
+Every command requires `~/.sablier.yml` and a token in the OS keyring or the file — see
 [configuration.md](configuration.md).
 
 ## `sablier`
@@ -29,7 +29,7 @@ Fails before touching the terminal if the config file is missing or the token is
 
 ## `sablier login`
 
-Sign in by approving a link in any browser and write the token to `~/.sablier.yml`.
+Sign in by approving a link in any browser, store the token in the OS keyring and the server in `~/.sablier.yml`.
 
 | Argument or flag | Type | Default | What it does |
 |---|---|---|---|
@@ -62,7 +62,7 @@ server that has not mounted the device exchange (404) falls back to it on its ow
 
 ## `sablier logout`
 
-Forget the stored token. `server_url` is kept, so signing back in does not mean retyping
+Forget the stored token, in the OS keyring and in `~/.sablier.yml`. `server_url` is kept, so signing back in does not mean retyping
 which Sablier this is.
 
 ```sh
@@ -70,11 +70,10 @@ sablier logout
 ```
 
 ```
-✓ Signed out. Token removed from /Users/you/.sablier.yml
+✓ Signed out
 ```
 
-Prints `▸ Not signed in` when there was no token, and fails when there is no config file at
-all.
+Prints `▸ Not signed in` when there was no token anywhere.
 
 ## `sablier start`
 
