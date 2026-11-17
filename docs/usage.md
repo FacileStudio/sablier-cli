@@ -270,13 +270,13 @@ The CLI never edits git config or `core.hooksPath`.
 
 ## Updating
 
-`facile update sablier` reinstalls the published binary in place. There is no `sablier
+`kit update sablier` reinstalls the published binary in place. There is no `sablier
 upgrade`: it shelled out to `cargo install --git`, which writes to `~/.cargo/bin` whatever
 directory the running binary came from, so it left a second copy behind instead of
 replacing the first.
 
 ```sh
-facile update sablier
+kit update sablier
 ```
 
 ## TUI keybindings
